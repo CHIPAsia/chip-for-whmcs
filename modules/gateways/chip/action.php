@@ -47,7 +47,7 @@ class ChipAction {
     return true;
   }
 
-  public static function retrieve_public_key() {
+  public static function retrieve_public_key($params) {
     $ten_secret_key = substr($params['secretKey'], 0, 10);
     
     if ( $public_key = WHMCSSetting::getValue("CHIP_PUBLIC_KEY_" . $ten_secret_key) ) {

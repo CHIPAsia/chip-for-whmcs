@@ -12,7 +12,7 @@ if ( !isset($_GET['invoiceid']) ) {
   exit;
 }
 
-if ( $content = file_get_contents('php://input')) {
+if ( empty($content = file_get_contents('php://input')) ) {
   exit;
 }
 
