@@ -1,0 +1,31 @@
+{
+    "schema": "1.0",
+    "type": "whmcs-gateways",
+    "name": "chip-for-whmcs",
+    "license": "MIT",
+    "category": "gateway",
+    "description": {
+        "name": "CHIP Payment Gateway Module",
+        "tagline": "This Payment Gateway modules allow you to integrate CHIP with the WHMCS platform.",
+        "long": "CHIP. Cash, Card & Coin Handling Integrated Platform.",
+        "features": [
+            "Provide both client and admin facing user interfaces",
+            "Utilize hook functionality within WHMCS"
+        ]
+    },
+    "logo": {
+        "filename": "logo.svg"
+    },
+    "support": {
+        "homepage": "https:\/\/www.chip-in.asia\/",  
+        "email": "info@chip-in.asia", 
+        "support_url": "https:\/\/support.chip-in.asia\/",
+        "docs_url": "https:\/\/support.chip-in.asia\/"
+    },
+    "authors": [
+        {
+            "name": "CHIP IN SDN BHD",
+            "homepage": "https:\/\/www.chip-in.asia\/"
+        }
+    ]
+}
