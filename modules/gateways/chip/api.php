@@ -5,6 +5,7 @@ define("ROOT_URL", "https://gate.chip-in.asia");
 class ChipAPI
 {
   private static $_instance;
+  private $require_empty_string_encoding = false;
   
   public static function get_instance($secret_key, $brand_id) {
 
@@ -60,6 +61,19 @@ class ChipAPI
     return $result;
   }
 
+  public function account_balance()
+  {
+    $params = array(
+      'brand_id' => $this->brand_id
+    );
+
+    $this->require_empty_string_encoding = true;
+
+    $result = $this->call('GET', '/account/json/balance/?' . http_build_query($params));
+
+    return $result;
+  }
+
   private function call($method, $route, $params = [])
   {
     $private_key = $this->private_key;
@@ -111,6 +125,11 @@ class ChipAPI
     curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     
+    // this to prevent error when account balance called
+    if ($this->require_empty_string_encoding){
+      curl_setopt($ch, CURLOPT_ENCODING, '');
+    }
+
     $response = curl_exec($ch);
     
     curl_close($ch);

@@ -3,6 +3,9 @@
 use WHMCS\ClientArea;
 use WHMCS\Session;
 
+use WHMCS\Module\Gateway\Balance;
+use WHMCS\Module\Gateway\BalanceCollection;
+
 if (!defined("WHMCS")) {
   die("This file cannot be accessed directly");
 }
@@ -79,6 +82,10 @@ function chip_link($params)
     return $html . '</p>';
   }
 
+  if ( empty($params['secretKey']) OR empty($params['brandId']) ) {
+    return '<p>Secret Key and Brand ID not set';
+  }
+
   if ( isset($_GET['success']) && $_GET['success'] == 'true' && !empty(Session::get('chip_' . $params['invoiceid'])) ) {
     $payment_id = Session::getAndDelete('chip_' . $params['invoiceid']);
     
@@ -102,4 +109,44 @@ function chip_link($params)
         . '</p>';
 
   return $html;
+}
+
+function chip_refund( $params )
+{
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $result = $chip->refund_payment($params['transid'], array());
+
+  if ( !array_key_exists('id', $result) ) {
+    return array(
+      'status'  => 'error',
+      'rawdata' => json_encode($result),
+      'transid' => '',
+    );
+  }
+
+  return array(
+    'status' => 'success',
+    'rawdata' => json_encode($result),
+    'transid' => $result['id'],
+    // 'fees' => $feeAmount,
+  );
+}
+
+function chip_account_balance( $params )
+{
+  $balanceInfo = [];
+
+  // Connect to gateway to retrieve balance information.
+  $chip     = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $balanceData = $chip->account_balance();
+
+  foreach( $balanceData as $currency => $value ) {
+    $balanceInfo[] = Balance::factory(
+      ($value['balance'] / 100),
+      $currency
+    );
+  }
+
+  //... splat operator. it will explode the array and send it as individual variable
+  return BalanceCollection::factoryFromItems(...$balanceInfo );
 }
