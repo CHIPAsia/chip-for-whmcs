@@ -22,10 +22,10 @@ class ChipAction {
     Capsule::beginTransaction();
 
     $account = Capsule::table('tblaccounts')
-    ->where('transid', $payment_id)
-    ->take(1)
-    ->lockForUpdate()
-    ->first();
+      ->where('transid', $payment_id)
+      ->take(1)
+      ->lockForUpdate()
+      ->first();
 
     if ($account) {
       Capsule::commit();

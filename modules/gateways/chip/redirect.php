@@ -22,7 +22,7 @@ if ( empty($chip_invoice_id) || empty($get_invoice_id) ) {
 }
 
 if ( $get_invoice_id != $chip_invoice_id ) {
-  header( 'Location: ' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $get_invoice_id);
+  header( 'Location: ' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $get_invoice_id );
   exit;
 }
 
@@ -30,7 +30,7 @@ $invoice = new Invoice($chip_invoice_id);
 $params  = $invoice->getGatewayInvoiceParams();
 
 if ( $params['paymentmethod'] != 'chip' ) {
-  header( 'Location: ' . $params['returnurl']);
+  header( 'Location: ' . $params['returnurl'] );
 }
 
 $send_params = array(
@@ -64,13 +64,13 @@ $send_params = array(
   ),
 );
 
-$chip    = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-$payment = $chip->create_payment($send_params);
+$chip    = \ChipAPI::get_instance( $params['secretKey'], $params['brandId'] );
+$payment = $chip->create_payment( $send_params );
 
-if (!array_key_exists('id', $payment)) {
+if ( !array_key_exists('id', $payment) ) {
   throw new Exception( 'Failed to create purchase. Errors: ' . print_r($payment, true) ) ;
 }
 
-Session::set('chip_' . $params['invoiceid'], $payment['id']);
+Session::set( 'chip_' . $params['invoiceid'], $payment['id'] );
 
 header( 'Location: ' . $payment['checkout_url'] );
