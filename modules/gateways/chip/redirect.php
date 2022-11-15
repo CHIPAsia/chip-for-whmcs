@@ -37,7 +37,7 @@ $send_params = array(
   'success_callback' => $params['systemurl'] . '/modules/gateways/callback/chip.php?invoiceid=' . $get_invoice_id,
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
-  'creator_agent'    => 'WHMCS: 1.0.0',
+  'creator_agent'    => 'WHMCS: 1.0.1',
   'reference'        => $params['invoiceid'],
   'platform'         => 'api',
   'send_receipt'     => $params['purchaseSendReceipt'] == 'on',
