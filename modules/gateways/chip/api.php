@@ -67,9 +67,16 @@ class ChipAPI
       'brand_id' => $this->brand_id
     );
 
+    // get initial state prior
+    $initial_state = $this->require_empty_string_encoding;
+
+    // set to true as it requires empty encoding
     $this->require_empty_string_encoding = true;
 
     $result = $this->call('GET', '/account/json/balance/?' . http_build_query($params));
+
+    // restore initial state
+    $this->require_empty_string_encoding = $initial_state;
 
     return $result;
   }
