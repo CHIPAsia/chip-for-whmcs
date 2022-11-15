@@ -114,7 +114,7 @@ function chip_link($params)
 function chip_refund( $params )
 {
   $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $result = $chip->refund_payment($params['transid'], array());
+  $result = $chip->refund_payment($params['transid'], array( 'amount' => round($params['amount']  * 100)) );
 
   if ( !array_key_exists('id', $result) ) {
     return array(
