@@ -39,7 +39,7 @@ $send_params = array(
   'failure_redirect' => $params['returnurl'],
   'creator_agent'    => 'WHMCS: 1.0.1',
   'reference'        => $params['invoiceid'],
-  'platform'         => 'api',
+  'platform'         => 'whmcs',
   'send_receipt'     => $params['purchaseSendReceipt'] == 'on',
   'due'              => time() + (abs( (int)$params['dueStrictTiming'] ) * 60),
   'brand_id'         => $params['brandId'],
