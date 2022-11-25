@@ -10,7 +10,7 @@ class ChipAPI
   public static function get_instance($secret_key, $brand_id) {
 
     if ( self::$_instance == null ) {
-      self::$_instance = new ChipAPI($secret_key, $brand_id);
+      self::$_instance = new self($secret_key, $brand_id);
     }
 
     return self::$_instance;
