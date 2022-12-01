@@ -88,7 +88,7 @@ function chip_link($params)
 
   if ( isset($_GET['success']) && $_GET['success'] == 'true' && !empty(Session::get('chip_' . $params['invoiceid'])) ) {
     $payment_id = Session::getAndDelete('chip_' . $params['invoiceid']);
-    
+
     if ( \ChipAction::complete_payment($params, $payment_id) ) {
       return '<script>window.location.reload();</script>';
     }
