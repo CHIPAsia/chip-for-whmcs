@@ -1,6 +1,12 @@
 <?php
 
 use WHMCS\Database\Capsule;
+use WHMCS\User\Client;
+use WHMCS\Billing\Invoice;
+use WHMCS\Payment\PayMethod\Adapter\RemoteCreditCard;
+use WHMCS\Module\Gateway;
+use WHMCS\Carbon;
+use WHMCS\Exception\Module\NotServicable;
 use WHMCS\Config\Setting as WHMCSSetting;
 
 class ChipAction {
@@ -14,7 +20,7 @@ class ChipAction {
     } else {
       return false;
     }
-    
+
     if ( $payment['status'] != 'paid' ) {
       return false;
     }
@@ -32,11 +38,23 @@ class ChipAction {
       return true;
     }
 
+    $transaction_currency = Capsule::table("tblcurrencies")->where("code", "=", strtoupper($payment['payment']['currency']))->first(array("id"));
+    $client = Client::find($params["clientdetails"]["id"]);
+    $transactionFee = convertCurrency($payment['transaction_data']['attempts'][0]['fee_amount'] / 100, $transaction_currency->id, $client->currencyId);
+    $payment_amount = convertCurrency($payment['payment']['amount'] / 100, $transaction_currency->id, $client->currencyId);
+
+    $invoice = Invoice::findOrFail($params['invoiceid']);
+    $amount = $invoice->balance;
+
+    if ($payment_amount != $amount) {
+      throw new NotServicable("Invoice Amount Invalid");
+    }
+
     \addInvoicePayment(
       $params['invoiceid'],
       $payment_id,
-      null, // payment amount. it will be added automatically from invoice
-      null, // payment fee
+      $payment_amount,
+      $transactionFee,
       $params['paymentmethod']
     );
 
@@ -44,12 +62,29 @@ class ChipAction {
 
     \logTransaction( $params['name'], $payment, $payment['status'] );
 
+    if ($payment['is_recurring_token']) {
+      $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
+      $gateway = Gateway::factory("chip");
+      $payMethod->setGateway($gateway);
+      $payMethod_payment = $payMethod->payment;
+      $masked_pan = $payment['transaction_data']['extra']['masked_pan'];
+
+      $payMethod_payment->setCardNumber($card_number);
+      $payMethod_payment->setLastFour(substr($masked_pan, -4));
+      $expiry_date = sprintf("%02d", $payment['transaction_data']['extra']['expiry_month']).'/'.$payment['transaction_data']['extra']['expiry_year'];
+      $payMethod_payment->setCardType(ucwords($payment['transaction_data']['extra']['card_brand']));
+      $payMethod_payment->setExpiryDate(Carbon::createFromCcInput($expiry_date));
+      $payMethod_payment->setRemoteToken($payment['id']);
+      $payMethod_payment->save();
+      $payMethod->save();
+    }
+
     return true;
   }
 
   public static function retrieve_public_key($params) {
     $ten_secret_key = substr($params['secretKey'], 0, 10);
-    
+
     if ( $public_key = WHMCSSetting::getValue("CHIP_PUBLIC_KEY_" . $ten_secret_key) ) {
       return $public_key;
     }

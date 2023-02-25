@@ -33,11 +33,14 @@ if ( $params['paymentmethod'] != 'chip' ) {
   header( 'Location: ' . $params['returnurl'] );
 }
 
+$phone_a = explode('.', $params['clientdetails']['phonenumberformatted']);
+$phone = implode(' ', $phone_a);
+
 $send_params = array(
   'success_callback' => $params['systemurl'] . '/modules/gateways/callback/chip.php?invoiceid=' . $get_invoice_id,
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
-  'creator_agent'    => 'WHMCS: 1.0.1',
+  'creator_agent'    => 'WHMCS: 1.1.0',
   'reference'        => $params['invoiceid'],
   'platform'         => 'whmcs',
   'send_receipt'     => $params['purchaseSendReceipt'] == 'on',
@@ -45,7 +48,7 @@ $send_params = array(
   'brand_id'         => $params['brandId'],
   'client'           => [
     'email'          => $params['clientdetails']['email'],
-    'phone'          => $params['clientdetails']['phonenumber'],
+    'phone'          => $phone,
     'full_name'      => substr($params['clientdetails']['fullname'], 0, 30),
     'street_address' => substr($params['clientdetails']['address1'] . ' ' . $params['clientdetails']['address2'], 0, 128),
     'country'        => $params['clientdetails']['countrycode'],
@@ -53,7 +56,7 @@ $send_params = array(
     'zip_code'       => $params['clientdetails']['postcode']
   ],
   'purchase'         => array(
-    'timezone'   => date_default_timezone_get(),
+    'timezone'   => $params['purchaseTimeZone'],
     'currency'   => $params['currency'],
     'due_strict' => $params['dueStrict'] == 'on',
     'products'   => array([
@@ -64,7 +67,51 @@ $send_params = array(
   ),
 );
 
+if ($params['paymentWhitelist'] == 'on') {
+  $send_params['payment_method_whitelist'] = array();
+
+  if ($params['paymentWhiteVisa'] == 'on') {
+    $send_params['payment_method_whitelist'][] = 'visa';
+  }
+
+  if ($params['paymentWhiteMaster'] == 'on') {
+    $send_params['payment_method_whitelist'][] = 'mastercard';
+  }
+
+  if ($params['paymentWhiteFpxb2c'] == 'on') {
+    $send_params['payment_method_whitelist'][] = 'fpx';
+  }
+
+  if ($params['paymentWhiteFpxb2b1'] == 'on') {
+    $send_params['payment_method_whitelist'][] = 'fpx_b2b1';
+  }
+}
+
+if ($params['forceTokenization'] == 'on') {
+  $send_params['force_recurring'] = true;
+}
+
 $chip    = \ChipAPI::get_instance( $params['secretKey'], $params['brandId'] );
+
+$get_client = $chip->get_client_by_email($params['clientdetails']['email']);
+
+if (array_key_exists('__all__', $get_client)) {
+  throw new Exception( 'Failed to create purchase. Errors: ' . print_r($get_client, true) ) ;
+}
+
+if (is_array($get_client['results']) AND !empty($get_client['results'])) {
+  $client = $get_client['results'][0];
+
+  if ($params['updateClientInfo'] == 'on') {
+    $chip->patch_client($client['id'], $send_params['client']);
+  }
+} else {
+  $client = $chip->create_client($send_params['client']);
+}
+
+unset($send_params['client']);
+$send_params['client_id'] = $client['id'];
+
 $payment = $chip->create_payment( $send_params );
 
 if ( !array_key_exists('id', $payment) ) {
