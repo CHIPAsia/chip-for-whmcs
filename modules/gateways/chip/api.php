@@ -27,6 +27,11 @@ class ChipAPI
     return $this->call('POST', '/purchases/', $params);
   }
 
+  public function charge_payment($payment_id, $params)
+  {
+    return $this->call('POST', "/purchases/{$payment_id}/charge/", $params);
+  }
+
   public function payment_methods($currency, $language)
   {
     return $this->call(
@@ -45,6 +50,22 @@ class ChipAPI
   {
     $result = $this->get_payment($payment_id);
     return $result && $result['status'] == 'paid';
+  }
+
+  public function create_client($params)
+  {
+    return $this->call('POST', "/clients/", $params);
+  }
+
+  // this is secret feature
+  public function get_client_by_email($email)
+  {
+    $email_encoded = urlencode($email);
+    return $this->call('GET', "/clients/?q={$email_encoded}");
+  }
+
+  public function patch_client($client_id, $params) {
+    return $this->call('PATCH', "/clients/{$client_id}/", $params);
   }
 
   public function refund_payment($payment_id, $params)
@@ -123,24 +144,28 @@ class ChipAPI
       curl_setopt($ch, CURLOPT_PUT, 1);
     }
 
-    if ($method == 'PUT' or $method == 'POST') {
+    if ($method == 'PUT' or $method == 'POST' or $method == 'PATCH') {
       curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+    }
+
+    if ($method == 'PATCH') {
+      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
     }
 
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    
+
     // this to prevent error when account balance called
     if ($this->require_empty_string_encoding){
       curl_setopt($ch, CURLOPT_ENCODING, '');
     }
 
     $response = curl_exec($ch);
-    
+
     curl_close($ch);
-    
+
     return $response;
   }
 }

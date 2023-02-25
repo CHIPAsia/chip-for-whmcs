@@ -6,6 +6,9 @@ use WHMCS\Session;
 use WHMCS\Module\Gateway\Balance;
 use WHMCS\Module\Gateway\BalanceCollection;
 
+use WHMCS\Billing\Payment\Transaction\Information;
+use WHMCS\Carbon;
+
 if (!defined("WHMCS")) {
   die("This file cannot be accessed directly");
 }
@@ -16,15 +19,26 @@ require_once __DIR__ . '/chip/action.php';
 function chip_MetaData()
 {
   return array(
-    'DisplayName'                 => 'CHIP',
-    'APIVersion'                  => '1.1',
-    'DisableLocalCreditCardInput' => true,
-    'TokenisedStorage'            => false,
+    'DisplayName'   => 'CHIP',
+    'APIVersion'    => '1.1',
+    'supportedCurrencies' => array('MYR')
   );
 }
 
 function chip_config()
 {
+  $modified_time_zones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
+
+  if (($key = array_search('Asia/Kuala_Lumpur', $modified_time_zones)) !== false) {
+    unset($modified_time_zones[$key]);
+    array_unshift($modified_time_zones, 'Asia/Kuala_Lumpur');
+  }
+
+  $time_zones = array();
+  foreach ($modified_time_zones as $mtz) {
+    $time_zones[$mtz] = $mtz;
+  }
+
   return array(
     'FriendlyName' => array(
       'Type'  => 'System',
@@ -66,6 +80,55 @@ function chip_config()
       'FriendlyName' => 'Purchase Send Receipt',
       'Type'         => 'yesno',
       'Description'  => 'Tick to ask CHIP to send receipt upon successful payment.',
+    ),
+    'purchaseTimeZone' => array(
+      'FriendlyName' => 'Time zone',
+      'Type'         => 'dropdown',
+      'Description'  => 'Tick to ask CHIP to send receipt upon successful payment.',
+      'Options' => $time_zones
+    ),
+    'updateClientInfo' => array(
+      'FriendlyName' => 'Update client information',
+      'Type'         => 'yesno',
+      'Description'  => 'Tick to update client information on purchase creation.',
+    ),
+    'A' => array(
+      'FriendlyName' => '',
+      'Description'  => '',
+    ),
+    'forceTokenization' => array(
+      'FriendlyName' => 'Force Tokenization',
+      'Type'         => 'yesno',
+      'Description'  => 'Tick to force tokenization for card payment.',
+    ),
+    'paymentWhitelist' => array(
+      'FriendlyName' => 'Payment Method Whitelisting',
+      'Type'         => 'yesno',
+      'Description'  => 'Tick to enforce payment method whitelisting.',
+    ),
+    'paymentWhiteVisa' => array(
+      'FriendlyName' => 'Whitelist Visa',
+      'Type'         => 'yesno',
+      'Description'  => 'Tick to enable Visa card.',
+    ),
+    'paymentWhiteMaster' => array(
+      'FriendlyName' => 'Whitelist Mastercard',
+      'Type'         => 'yesno',
+      'Description'  => 'Tick to enable Mastercard.',
+    ),
+    'paymentWhiteFpxb2c' => array(
+      'FriendlyName' => 'Whitelist FPX B2C',
+      'Type'         => 'yesno',
+      'Description'  => 'Tick to enable FPX B2C.',
+    ),
+    'paymentWhiteFpxb2b1' => array(
+      'FriendlyName' => 'Whitelist FPX B2B1',
+      'Type'         => 'yesno',
+      'Description'  => 'Tick to enable FPX B2B1.',
+    ),
+    'B' => array(
+      'FriendlyName' => '',
+      'Description'  => '',
     ),
   );
 }
@@ -149,4 +212,66 @@ function chip_account_balance( $params )
 
   //... splat operator. it will explode the array and send it as individual variable
   return BalanceCollection::factoryFromItems(...$balanceInfo );
+}
+
+function chip_TransactionInformation(array $params = []): Information
+{
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $payment = $chip->get_payment($params['transactionId']);
+
+  return (new Information())
+        ->setTransactionId($payment['id'])
+        ->setAmount($payment['payment']['amount'] / 100)
+        ->setCurrency($payment['payment']['currency'])
+        ->setType($payment['type'])
+        ->setAvailableOn(Carbon::parse($payment['paid_on']))
+        ->setCreated(Carbon::parse($payment['created_on']))
+        ->setDescription($payment['payment']['description'])
+        ->setFee($payment['transaction_data']['attempts'][0]['fee_amount'] / 100)
+        ->setStatus($payment['status']);
+}
+
+// $params = https://pastebin.com/vz16pSJV
+function chip_capture($params)
+{
+  if ( $params['currency'] != 'MYR' ) {
+    return array("status" => "declined", 'declinereason' => 'Unsupported currency');
+  }
+
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+
+  $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
+  $client = $get_client['results'][0];
+
+  $purchase_params = array(
+    'success_callback' => $params['systemurl'] . '/modules/gateways/callback/chip.php?invoiceid=' . $params['invoiceid'],
+    'creator_agent'    => 'WHMCS: 1.1.0',
+    'reference'        => $params['invoiceid'],
+    'client_id'        => $client['id'],
+    'platform'         => 'whmcs',
+    'send_receipt'     => $params['purchaseSendReceipt'] == 'on',
+    'due'              => time() + (abs( (int)$params['dueStrictTiming'] ) * 60),
+    'brand_id'         => $params['brandId'],
+    'purchase'         => array(
+      'timezone'   => $params['purchaseTimeZone'],
+      'currency'   => $params['currency'],
+      'due_strict' => $params['dueStrict'] == 'on',
+      'products'   => array([
+        'name'     => substr($params['description'], 0, 256),
+        'price'    => round($params['amount'] * 100),
+      ]),
+    ),
+  );
+
+  $create_payment = $chip->create_payment( $purchase_params );
+
+  $charge_payment = $chip->charge_payment($create_payment['id'], array('recurring_token' => $params["gatewayid"]));
+
+  if ($charge_payment['status'] == 'paid') {
+    return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100);
+  } elseif ($charge_payment['status'] == 'pending_charge') {
+    return array("status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
+  }
+
+  return array("status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
 }
