@@ -6,11 +6,16 @@
     "category": "gateway",
     "description": {
         "name": "CHIP Payment Gateway Module",
-        "tagline": "This Payment Gateway modules allow you to integrate CHIP with the WHMCS platform.",
+        "tagline": "This modules allow you to integrate CHIP with the WHMCS platform.",
         "long": "CHIP - Better Payment & Business Solutions",
         "features": [
             "Provide both client and admin facing user interfaces",
-            "Utilize hook functionality within WHMCS"
+            "Utilize hook functionality within WHMCS",
+            "One-time payment from Invoice",
+            "Save card for future payment",
+            "Tokenization payment to automatically capture payment on-demand",
+            "Force payment tokenization",
+            "Whitelist specific payment method"
         ]
     },
     "logo": {
