@@ -7,14 +7,14 @@
     "description": {
         "name": "CHIP Payment Gateway Module",
         "tagline": "This Payment Gateway modules allow you to integrate CHIP with the WHMCS platform.",
-        "long": "CHIP. Cash, Card & Coin Handling Integrated Platform.",
+        "long": "CHIP - Better Payment & Business Solutions",
         "features": [
             "Provide both client and admin facing user interfaces",
             "Utilize hook functionality within WHMCS"
         ]
     },
     "logo": {
-        "filename": "logo.svg"
+        "filename": "chiplogo.png"
     },
     "support": {
         "homepage": "https:\/\/www.chip-in.asia\/",  
