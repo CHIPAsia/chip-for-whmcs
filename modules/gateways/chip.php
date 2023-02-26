@@ -315,3 +315,7 @@ function chip_capture($params)
  * @param int $userId An optional user id to which the log entry relates
  */
 // logActivity('Message goes here', 0);
+
+function chip_nolocalcc() {
+  // this method must exists to hide card credit input displaying in checkout page
+}
