@@ -25,16 +25,15 @@ class ChipAction {
       return false;
     }
 
-    Capsule::beginTransaction();
+    // https://whmcs.community/topic/296566-raw-complex-query/
+    Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 15);");
 
     $account = Capsule::table('tblaccounts')
       ->where('transid', $payment_id)
       ->take(1)
-      ->lockForUpdate()
       ->first();
 
     if ($account) {
-      Capsule::commit();
       return true;
     }
 
@@ -58,7 +57,7 @@ class ChipAction {
       $params['paymentmethod']
     );
 
-    Capsule::commit();
+    Capsule::select("SELECT RELEASE_LOCK('chip_payment_$payment_id');");
 
     \logTransaction( $params['name'], $payment, $payment['status'] );
 

@@ -9,6 +9,8 @@ use WHMCS\Module\Gateway\BalanceCollection;
 use WHMCS\Billing\Payment\Transaction\Information;
 use WHMCS\Carbon;
 
+use WHMCS\Database\Capsule;
+
 if (!defined("WHMCS")) {
   die("This file cannot be accessed directly");
 }
@@ -176,10 +178,14 @@ function chip_link($params)
 
 function chip_refund( $params )
 {
+  if ($params['currency'] != 'MYR') {
+    return array();
+  }
+
   $chip   = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $result = $chip->refund_payment($params['transid'], array( 'amount' => round($params['amount']  * 100)) );
 
-  if ( !array_key_exists('id', $result) ) {
+  if ( array_key_exists('__all__', $result) ) {
     return array(
       'status'  => 'error',
       'rawdata' => json_encode($result),
@@ -191,7 +197,7 @@ function chip_refund( $params )
     'status'  => 'success',
     'rawdata' => json_encode($result),
     'transid' => $result['id'],
-    // 'fees' => number_format($result['payment']['fee_amount'] / 100, 2),
+    'fees'    => $result['payment']['fee_amount'] / 100,
   );
 }
 
@@ -218,8 +224,21 @@ function chip_TransactionInformation(array $params = []): Information
 {
   $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $payment = $chip->get_payment($params['transactionId']);
+  $information = new Information();
 
-  return (new Information())
+  if (array_key_exists('__all__', $payment)) {
+    return $information;
+  }
+
+  $payment_fee = 0;
+  foreach($payment['transaction_data']['attempts'] as $attempt) {
+    if (in_array($attempt['type'], ['execute', 'recurring_execute']) AND $attempt['successful'] AND empty($attempt['error'])) {
+      $payment_fee = $attempt['fee_amount'];
+      break;
+    }
+  }
+
+  return $information
         ->setTransactionId($payment['id'])
         ->setAmount($payment['payment']['amount'] / 100)
         ->setCurrency($payment['payment']['currency'])
@@ -227,7 +246,7 @@ function chip_TransactionInformation(array $params = []): Information
         ->setAvailableOn(Carbon::parse($payment['paid_on']))
         ->setCreated(Carbon::parse($payment['created_on']))
         ->setDescription($payment['payment']['description'])
-        ->setFee($payment['transaction_data']['attempts'][0]['fee_amount'] / 100)
+        ->setFee($payment_fee / 100)
         ->setStatus($payment['status']);
 }
 
@@ -267,6 +286,19 @@ function chip_capture($params)
 
   $charge_payment = $chip->charge_payment($create_payment['id'], array('recurring_token' => $params["gatewayid"]));
 
+  $payment_id = $create_payment['id'];
+
+  Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 10);");
+
+  $account = Capsule::table('tblaccounts')
+      ->where('transid', $payment_id)
+      ->take(1)
+      ->first();
+
+  if ($account) {
+    return array();
+  }
+
   if ($charge_payment['status'] == 'paid') {
     return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100);
   } elseif ($charge_payment['status'] == 'pending_charge') {
@@ -275,3 +307,11 @@ function chip_capture($params)
 
   return array("status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
 }
+
+/**
+ * Log activity.
+ *
+ * @param string $message The message to log
+ * @param int $userId An optional user id to which the log entry relates
+ */
+// logActivity('Message goes here', 0);
