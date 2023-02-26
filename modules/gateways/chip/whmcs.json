@@ -1,40 +1,40 @@
 {
-    "schema": "1.0",
-    "type": "whmcs-gateways",
-    "name": "chip-for-whmcs",
-    "license": "MIT",
-    "category": "payments",
-    "description": {
-        "name": "CHIP Payment Gateway Module",
-        "tagline": "This modules allow you to integrate CHIP with the WHMCS platform.",
-        "long": "CHIP - Better Payment & Business Solutions",
-        "features": [
-            "Seamless payment experience as payment processing are made in real-time",
-            "Perform refund directly from WHMCS administration",
-            "One-time payment from Invoice",
-            "Save card for future payment",
-            "Tokenization payment to automatically capture payment on-demand",
-            "Option to force payment tokenization",
-            "Whitelist specific payment method (FPX B2C, FPX B2B1, Visa, Mastercard)"
-        ]
-    },
-    "logo": {
-        "filename": "chiplogo.png"
-    },
-    "support": {
-        "homepage": "https:\/\/www.chip-in.asia\/",  
-        "email": "info@chip-in.asia", 
-        "support_url": "https:\/\/support.chip-in.asia\/",
-        "docs_url": "https:\/\/support.chip-in.asia\/"
-    },
-    "authors": [
-        {
-            "name": "Wan Zulkarnain",
-            "homepage": "https:\/\/www.chip-in.asia\/"
-        },
-        {
-            "name": "CHIP IN SDN BHD",
-            "homepage": "https:\/\/www.chip-in.asia\/"
-        }
-    ]
+  "schema": "1.0",
+  "type": "whmcs-gateways",
+  "name": "chip",
+  "license": "MIT",
+  "category": "payments",
+  "description": {
+      "name": "CHIP - Better Payment & Business Solutions",
+      "tagline": "Integrate with CHIP Payment Gateway.",
+      "long": "CHIP - Better Payment & Business Solutions",
+      "features": [
+          "Seamless payment experience as payment processing are made in real-time",
+          "Perform refund directly from WHMCS administration",
+          "One-time payment from Invoice",
+          "Save card for future payment",
+          "Tokenization payment to automatically capture payment on-demand",
+          "Option to force payment tokenization",
+          "Whitelist specific payment method (FPX B2C, FPX B2B1, Visa, Mastercard)"
+      ]
+  },
+  "logo": {
+      "filename": "chiplogo.png"
+  },
+  "support": {
+      "homepage": "https:\/\/www.chip-in.asia\/",  
+      "email": "info@chip-in.asia", 
+      "support_url": "https:\/\/support.chip-in.asia\/",
+      "docs_url": "https:\/\/support.chip-in.asia\/"
+  },
+  "authors": [
+      {
+          "name": "Wan Zulkarnain",
+          "homepage": "https:\/\/www.chip-in.asia\/"
+      },
+      {
+          "name": "CHIP IN SDN BHD",
+          "homepage": "https:\/\/www.chip-in.asia\/"
+      }
+  ]
 }
