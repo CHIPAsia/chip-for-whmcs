@@ -6,6 +6,9 @@ class ChipAPI
 {
   private static $_instance;
   private $require_empty_string_encoding = false;
+
+  private $brand_id;
+  private $private_key;
   
   public static function get_instance($secret_key, $brand_id) {
 
@@ -32,11 +35,19 @@ class ChipAPI
     return $this->call('POST', "/purchases/{$payment_id}/charge/", $params);
   }
 
-  public function payment_methods($currency, $language)
+  public function payment_methods($currency)
   {
     return $this->call(
       'GET',
-      "/payment_methods/?brand_id={$this->brand_id}&currency={$currency}&language={$language}"
+      "/payment_methods/?brand_id={$this->brand_id}&currency={$currency}&amount=200"
+    );
+  }
+
+  public function payment_recurring_methods($currency)
+  {
+    return $this->call(
+      'GET',
+      "/payment_methods/?brand_id={$this->brand_id}&currency={$currency}&amount=200&recurring=true"
     );
   }
 

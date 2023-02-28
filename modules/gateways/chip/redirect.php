@@ -67,27 +67,22 @@ $send_params = array(
   ),
 );
 
-if ($params['paymentWhitelist'] == 'on') {
+if (isset($params['paymentWhitelist']) AND $params['paymentWhitelist'] == 'on') {
   $send_params['payment_method_whitelist'] = array();
 
-  if ($params['paymentWhiteVisa'] == 'on') {
-    $send_params['payment_method_whitelist'][] = 'visa';
-  }
+  $keys = array_keys($params);
+  $result = preg_grep('/payment_method_whitelist_.*/', $keys);
 
-  if ($params['paymentWhiteMaster'] == 'on') {
-    $send_params['payment_method_whitelist'][] = 'mastercard';
-  }
 
-  if ($params['paymentWhiteFpxb2c'] == 'on') {
-    $send_params['payment_method_whitelist'][] = 'fpx';
-  }
-
-  if ($params['paymentWhiteFpxb2b1'] == 'on') {
-    $send_params['payment_method_whitelist'][] = 'fpx_b2b1';
+  foreach ($result as $key) {
+    if ($params[$key] == 'on') {
+      $key_array = explode('_', $key);
+      $send_params['payment_method_whitelist'][] = end($key_array);
+    }
   }
 }
 
-if ($params['forceTokenization'] == 'on') {
+if (isset($params['forceTokenization']) AND $params['forceTokenization'] == 'on') {
   $send_params['force_recurring'] = true;
 }
 

@@ -10,6 +10,7 @@ use WHMCS\Billing\Payment\Transaction\Information;
 use WHMCS\Carbon;
 
 use WHMCS\Database\Capsule;
+use WHMCS\Exception\Module\NotServicable;
 
 if (!defined("WHMCS")) {
   die("This file cannot be accessed directly");
@@ -27,21 +28,46 @@ function chip_MetaData()
   );
 }
 
-function chip_config()
+function chip_config($params = array())
 {
-  $modified_time_zones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
+  $list_time_zones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
 
-  if (($key = array_search('Asia/Kuala_Lumpur', $modified_time_zones)) !== false) {
-    unset($modified_time_zones[$key]);
-    array_unshift($modified_time_zones, 'Asia/Kuala_Lumpur');
+  $formatted_time_zones = array();
+  foreach ($list_time_zones as $mtz) {
+    $formatted_time_zones[$mtz] = str_replace("_"," ",$mtz);;
   }
 
-  $time_zones = array();
-  foreach ($modified_time_zones as $mtz) {
-    $time_zones[$mtz] = $mtz;
+  // query available payment method
+  $show_whitelist_option = false;
+  $show_force_token_option = false;
+  $available_payment_method = array();
+
+  if (empty($params['secretKey'] || empty($params['brandId']))) {
+    // do nothing
+  } else {
+    $chip   = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+    $result = $chip->payment_methods('MYR');
+
+    if ( array_key_exists('available_payment_methods', $result) AND !empty($result['available_payment_methods'])) {
+      foreach( $result['available_payment_methods'] as $apm) {
+        $available_payment_method['payment_method_whitelist_' . $apm] = array(
+          'FriendlyName' => 'Whitelist ' . ucfirst($apm),
+          'Type'         => 'yesno',
+          'Description'  => 'Tick to enable ' . ucfirst($apm),
+        );
+      }
+
+      $show_whitelist_option = true;
+    }
+
+    $result = $chip->payment_recurring_methods('MYR');
+
+    if ( array_key_exists('available_payment_methods', $result) AND !empty($result['available_payment_methods'])) {
+      $show_force_token_option = true;
+    }
   }
 
-  return array(
+  $config_params =  array(
     'FriendlyName' => array(
       'Type'  => 'System',
       'Value' => 'CHIP',
@@ -70,6 +96,7 @@ function chip_config()
       'FriendlyName' => 'Due Strict',
       'Type'         => 'yesno',
       'Description'  => 'Tick to enforce due strict payment timeframe',
+      'Default'      => 'on',
     ),
     'dueStrictTiming' => array(
       'FriendlyName' => 'Due Strict Timing',
@@ -82,57 +109,65 @@ function chip_config()
       'FriendlyName' => 'Purchase Send Receipt',
       'Type'         => 'yesno',
       'Description'  => 'Tick to ask CHIP to send receipt upon successful payment.',
+      'Default'      => 'on',
     ),
     'purchaseTimeZone' => array(
       'FriendlyName' => 'Time zone',
       'Type'         => 'dropdown',
       'Description'  => 'Tick to ask CHIP to send receipt upon successful payment.',
-      'Options' => $time_zones
+      'Default'      => 'Asia/Kuala_Lumpur',
+      'Options' => $formatted_time_zones
     ),
     'updateClientInfo' => array(
       'FriendlyName' => 'Update client information',
       'Type'         => 'yesno',
       'Description'  => 'Tick to update client information on purchase creation.',
+      'Default'      => 'on',
     ),
     'A' => array(
       'FriendlyName' => '',
       'Description'  => '',
     ),
-    'forceTokenization' => array(
+  );
+
+  if ($show_force_token_option) {
+    $config_params['forceTokenization'] = array(
       'FriendlyName' => 'Force Tokenization',
       'Type'         => 'yesno',
       'Description'  => 'Tick to force tokenization for card payment.',
-    ),
-    'paymentWhitelist' => array(
+    );
+  }
+
+  if ($show_whitelist_option) {
+    $config_params['paymentWhitelist'] = array(
       'FriendlyName' => 'Payment Method Whitelisting',
       'Type'         => 'yesno',
       'Description'  => 'Tick to enforce payment method whitelisting.',
-    ),
-    'paymentWhiteVisa' => array(
-      'FriendlyName' => 'Whitelist Visa',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to enable Visa card.',
-    ),
-    'paymentWhiteMaster' => array(
-      'FriendlyName' => 'Whitelist Mastercard',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to enable Mastercard.',
-    ),
-    'paymentWhiteFpxb2c' => array(
-      'FriendlyName' => 'Whitelist FPX B2C',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to enable FPX B2C.',
-    ),
-    'paymentWhiteFpxb2b1' => array(
-      'FriendlyName' => 'Whitelist FPX B2B1',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to enable FPX B2B1.',
-    ),
-    'B' => array(
-      'FriendlyName' => '',
-      'Description'  => '',
-    ),
-  );
+    );
+
+    $config_params += $available_payment_method;
+  }
+
+  return $config_params;
+}
+
+function chip_config_validate(array $params) {
+  if ($params['paymentWhitelist'] == 'on') {
+    $keys = array_keys($params);
+    $result = preg_grep('/payment_method_whitelist_.*/', $keys);
+
+    $should_throw_invalid = true;
+    foreach ($result as $key) {
+      if ($params[$key] == 'on') {
+        $should_throw_invalid = false;
+        break;
+      }
+    }
+  }
+
+  if ($should_throw_invalid) {
+    throw new NotServicable("Invalid settings for payment method whitelisting");
+  }
 }
 
 function chip_link($params)
@@ -147,8 +182,38 @@ function chip_link($params)
     return $html . '</p>';
   }
 
+  $chip   = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $payment_methods = $chip->payment_methods('MYR');
+
+  $payment_method_configuration_error = false;
+
+  if ($params['paymentWhitelist'] == 'on') {
+    $payment_method_configuration_error = true;
+    $keys = array_keys($params);
+    $result = preg_grep('/payment_method_whitelist_.*/', $keys);
+
+    $configured_payment_methods = array();
+    foreach ($result as $key) {
+      if ($params[$key] == 'on') {
+        $key_array = explode('_', $key);
+        $configured_payment_methods[] = end($key_array);
+      }
+    }
+
+    foreach ($configured_payment_methods as $cpm) {
+      if (in_array($apm, $payment_methods['available_payment_methods'])) {
+        $payment_method_configuration_error = false;
+        break;
+      }
+    }
+  }
+
+  if ($payment_method_configuration_error) {
+    return '<p>Payment method whitelisting error. Please disable payment method whitelisting</p>';
+  }
+
   if ( empty($params['secretKey']) OR empty($params['brandId']) ) {
-    return '<p>Secret Key and Brand ID not set';
+    return '<p>Secret Key and Brand ID not set</p>';
   }
 
   if ( isset($_GET['success']) && $_GET['success'] == 'true' && !empty(Session::get('chip_' . $params['invoiceid'])) ) {
@@ -263,7 +328,7 @@ function chip_capture($params)
   $client = $get_client['results'][0];
 
   $purchase_params = array(
-    'success_callback' => $params['systemurl'] . '/modules/gateways/callback/chip.php?invoiceid=' . $params['invoiceid'],
+    'success_callback' => $params['systemurl'] . '/modules/gateways/callback/chip.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
     'creator_agent'    => 'WHMCS: 1.1.0',
     'reference'        => $params['invoiceid'],
     'client_id'        => $client['id'],
@@ -288,6 +353,7 @@ function chip_capture($params)
 
   $payment_id = $create_payment['id'];
 
+  // this to prevent from callback being run in 10 seconds from now
   Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 10);");
 
   $account = Capsule::table('tblaccounts')
@@ -296,7 +362,7 @@ function chip_capture($params)
       ->first();
 
   if ($account) {
-    return array();
+    return 'success';
   }
 
   if ($charge_payment['status'] == 'paid') {

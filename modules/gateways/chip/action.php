@@ -37,6 +37,23 @@ class ChipAction {
       return true;
     }
 
+    $history = \WHMCS\Billing\Payment\Transaction\History::where("transaction_id", $payment_id)
+      ->take(1)
+      ->first();
+
+    if ($history) {
+      return true;
+    }
+
+    $history = new \WHMCS\Billing\Payment\Transaction\History();
+    $history->invoice_id = $params['invoiceid'];
+    $history->gateway = $params['name'];
+    $history->transactionId = $payment_id;
+    $history->remoteStatus = ucfirst($payment['status']);
+    $history->description = 'Updated by Redirect/Callback';
+    $history->completed = true;
+    $history->save();
+
     $transaction_currency = Capsule::table("tblcurrencies")->where("code", "=", strtoupper($payment['payment']['currency']))->first(array("id"));
     $client = Client::find($params["clientdetails"]["id"]);
     $transactionFee = convertCurrency($payment['transaction_data']['attempts'][0]['fee_amount'] / 100, $transaction_currency->id, $client->currencyId);
@@ -49,17 +66,20 @@ class ChipAction {
       throw new NotServicable("Invoice Amount Invalid");
     }
 
-    \addInvoicePayment(
+    $send_credit_card_email = isset($_GET['capturecallback']) AND $_GET['capturecallback'] == 'true' AND $payment['recurring_token'] AND isset($_SERVER['HTTP_X_SIGNATURE']);
+
+    $invoice_payment_status = \addInvoicePayment(
       $params['invoiceid'],
       $payment_id,
       $payment_amount,
       $transactionFee,
-      $params['paymentmethod']
+      $params['paymentmethod'],
+      $send_credit_card_email
     );
 
     Capsule::select("SELECT RELEASE_LOCK('chip_payment_$payment_id');");
 
-    \logTransaction( $params['name'], $payment, $payment['status'] );
+    \logTransaction( $params['name'], $payment, ucfirst($payment['status']), array('history_id' => $history->id) );
 
     if ($payment['is_recurring_token']) {
       $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
@@ -71,11 +91,29 @@ class ChipAction {
       $payMethod_payment->setCardNumber($card_number);
       $payMethod_payment->setLastFour(substr($masked_pan, -4));
       $expiry_date = sprintf("%02d", $payment['transaction_data']['extra']['expiry_month']).'/'.$payment['transaction_data']['extra']['expiry_year'];
-      $payMethod_payment->setCardType(ucwords($payment['transaction_data']['extra']['card_brand']));
+      $payMethod_payment->setCardType(ucfirst($payment['transaction_data']['extra']['card_brand']));
       $payMethod_payment->setExpiryDate(Carbon::createFromCcInput($expiry_date));
       $payMethod_payment->setRemoteToken($payment['id']);
       $payMethod_payment->save();
       $payMethod->save();
+    }
+
+    if (!$invoice_payment_status) {
+      return false;
+    }
+
+    if ($send_credit_card_email) {
+      $emailTemplate = "Credit Card Payment Confirmation";
+      $gateway = WHMCS\Module\Gateway::factory('chip');
+      if ($customEmailTemplate = $gateway->getMetaDataValue("successEmail")) {
+        $customEmailTemplate = WHMCS\Mail\Template::where("name", "=", $customEmailTemplate)->first();
+        if ($customEmailTemplate) {
+          $emailTemplate = $customEmailTemplate->name;
+        }
+      }
+
+      $emailExtra = array("payMethod" => $invoice->payMethod);
+      sendMessage($emailTemplate, $params['invoiceid'], $emailExtra);
     }
 
     return true;
