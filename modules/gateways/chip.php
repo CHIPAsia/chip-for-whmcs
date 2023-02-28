@@ -152,20 +152,39 @@ function chip_config($params = array())
 }
 
 function chip_config_validate(array $params) {
+  $chip   = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+
+  $payment_methods = $chip->payment_methods('MYR');
+
+  $payment_method_configuration_error = false;
+
   if ($params['paymentWhitelist'] == 'on') {
+    $payment_method_configuration_error = true;
     $keys = array_keys($params);
     $result = preg_grep('/payment_method_whitelist_.*/', $keys);
 
-    $should_throw_invalid = true;
+    $configured_payment_methods = array();
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
-        $should_throw_invalid = false;
+        $key_array = explode('_', $key);
+        
+        if (end($key_array) == 'b2b1') {
+          $configured_payment_methods[] = 'fpx_b2b1';
+        } else {
+          $configured_payment_methods[] = end($key_array);
+        }
+      }
+    }
+
+    foreach ($configured_payment_methods as $cpm) {
+      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
+        $payment_method_configuration_error = false;
         break;
       }
     }
   }
 
-  if ($should_throw_invalid) {
+  if ($payment_method_configuration_error) {
     throw new NotServicable("Invalid settings for payment method whitelisting");
   }
 }
@@ -196,12 +215,17 @@ function chip_link($params)
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
         $key_array = explode('_', $key);
-        $configured_payment_methods[] = end($key_array);
+
+        if (end($key_array) == 'b2b1') {
+          $configured_payment_methods[] = 'fpx_b2b1';
+        } else {
+          $configured_payment_methods[] = end($key_array);
+        }
       }
     }
 
     foreach ($configured_payment_methods as $cpm) {
-      if (in_array($apm, $payment_methods['available_payment_methods'])) {
+      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
         $payment_method_configuration_error = false;
         break;
       }

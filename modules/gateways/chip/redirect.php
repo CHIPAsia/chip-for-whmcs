@@ -77,7 +77,12 @@ if (isset($params['paymentWhitelist']) AND $params['paymentWhitelist'] == 'on') 
   foreach ($result as $key) {
     if ($params[$key] == 'on') {
       $key_array = explode('_', $key);
-      $send_params['payment_method_whitelist'][] = end($key_array);
+
+      if (end($key_array) == 'b2b1') {
+        $send_params['payment_method_whitelist'][] = 'fpx_b2b1';
+      } else {
+        $send_params['payment_method_whitelist'][] = end($key_array);
+      }
     }
   }
 }
