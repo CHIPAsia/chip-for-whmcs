@@ -79,6 +79,10 @@ class ChipAPI
     return $this->call('PATCH', "/clients/{$client_id}/", $params);
   }
 
+  public function delete_token($purchase_id) {
+    return $this->call('POST', "/purchases/$purchase_id/delete_recurring_token/");
+  }
+
   public function refund_payment($payment_id, $params)
   {
     $result = $this->call('POST', "/purchases/{$payment_id}/refund/", $params);

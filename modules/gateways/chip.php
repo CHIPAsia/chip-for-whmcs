@@ -185,7 +185,7 @@ function chip_config_validate(array $params) {
   }
 
   if ($payment_method_configuration_error) {
-    throw new NotServicable("Invalid settings for payment method whitelisting");
+    throw new NotServicable("Invalid settings for payment method whitelisting.");
   }
 }
 
@@ -408,4 +408,20 @@ function chip_capture($params)
 
 function chip_nolocalcc() {
   // this method must exists to hide card credit input displaying in checkout page
+}
+
+function chip_storeremote($params) {
+  $action = $params['action'];
+  $token = $params['gatewayid'];
+
+  switch ($action) {
+    case 'delete':
+      $chip = \ChipAPI::get_instance($params['secretKey'], '');
+      $chip->delete_token($token);
+    break;
+  }
+
+  return [
+    'status' => 'success',
+  ];
 }

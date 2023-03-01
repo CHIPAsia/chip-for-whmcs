@@ -83,12 +83,12 @@ class ChipAction {
 
     if ($payment['is_recurring_token']) {
       $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
-      $gateway = Gateway::factory("chip");
+      $gateway = Gateway::factory('chip');
+      $payMethod->description = $payment['transaction_data']['extra']['cardholder_name'];
       $payMethod->setGateway($gateway);
       $payMethod_payment = $payMethod->payment;
       $masked_pan = $payment['transaction_data']['extra']['masked_pan'];
 
-      $payMethod_payment->setCardNumber($card_number);
       $payMethod_payment->setLastFour(substr($masked_pan, -4));
       $expiry_date = sprintf("%02d", $payment['transaction_data']['extra']['expiry_month']).'/'.$payment['transaction_data']['extra']['expiry_year'];
       $payMethod_payment->setCardType(ucfirst($payment['transaction_data']['extra']['card_brand']));
