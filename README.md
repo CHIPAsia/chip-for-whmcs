@@ -18,7 +18,9 @@ The file must be extracted as follows:
   |- chip/action.php
   |- chip/api.php
   |- chip/logo.png
+  |- chip/chiplogo.png
   |- chip/redirect.php
+  |- chip/whmcs.json
   |  chip.php
 ```
 
