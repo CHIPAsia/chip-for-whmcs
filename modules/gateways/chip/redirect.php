@@ -36,11 +36,17 @@ if ( $params['paymentmethod'] != 'chip' ) {
 $phone_a = explode('.', $params['clientdetails']['phonenumberformatted']);
 $phone = implode(' ', $phone_a);
 
+$system_url = $params['systemurl'];
+
+if ($params['systemUrlHttps'] == 'https') {
+  $system_url = preg_replace("/^http:/i", "https:", $system_url);
+}
+
 $send_params = array(
-  'success_callback' => $params['systemurl'] . '/modules/gateways/callback/chip.php?invoiceid=' . $get_invoice_id,
+  'success_callback' => $system_url . 'modules/gateways/callback/chip.php?invoiceid=' . $get_invoice_id,
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
-  'creator_agent'    => 'WHMCS: 1.1.0',
+  'creator_agent'    => 'WHMCS: 1.1.1',
   'reference'        => $params['invoiceid'],
   'platform'         => 'whmcs',
   'send_receipt'     => $params['purchaseSendReceipt'] == 'on',

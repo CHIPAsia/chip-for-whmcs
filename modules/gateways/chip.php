@@ -116,13 +116,22 @@ function chip_config($params = array())
       'Type'         => 'dropdown',
       'Description'  => 'Tick to ask CHIP to send receipt upon successful payment.',
       'Default'      => 'Asia/Kuala_Lumpur',
-      'Options' => $formatted_time_zones
+      'Options'      => $formatted_time_zones
     ),
     'updateClientInfo' => array(
       'FriendlyName' => 'Update client information',
       'Type'         => 'yesno',
       'Description'  => 'Tick to update client information on purchase creation.',
       'Default'      => 'on',
+    ),
+    'systemUrlHttps' => array(
+      'FriendlyName' => 'System URL Mode',
+      'Type'         => 'dropdown',
+      'Description'  => 'Choose https if you are facing issue with payment status update due to http to https redirection',
+      'Options'      => array(
+        'default' => 'System Default',
+        'https'   => 'Force HTTPS',
+      )
     ),
     'A' => array(
       'FriendlyName' => '',
@@ -253,8 +262,8 @@ function chip_link($params)
   $html = '<p>'
         . nl2br($params['paymentInformation'])
         . '<br />'
-        . '<a href="' . $params['systemurl'] . '/modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-        . '<img src="' . $params['systemurl'] . '/modules/gateways/chip/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
+        . '<a href="' . $params['systemurl'] . 'modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
+        . '<img src="' . $params['systemurl'] . 'modules/gateways/chip/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
         . '</a>'
         . '<br />'
         . Lang::trans('invoicerefnum')
@@ -351,9 +360,15 @@ function chip_capture($params)
   $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
   $client = $get_client['results'][0];
 
+  $system_url = $params['systemurl'];
+
+  if ($params['systemUrlHttps'] == 'https') {
+    $system_url = preg_replace("/^http:/i", "https:", $system_url);
+  }
+
   $purchase_params = array(
-    'success_callback' => $params['systemurl'] . '/modules/gateways/callback/chip.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent'    => 'WHMCS: 1.1.0',
+    'success_callback' => $system_url . 'modules/gateways/callback/chip.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
+    'creator_agent'    => 'WHMCS: 1.1.1',
     'reference'        => $params['invoiceid'],
     'client_id'        => $client['id'],
     'platform'         => 'whmcs',
