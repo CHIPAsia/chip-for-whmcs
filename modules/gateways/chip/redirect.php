@@ -6,8 +6,8 @@ use WHMCS\Invoice;
 require_once __DIR__ . '/api.php';
 require_once __DIR__ . '/action.php';
 require_once __DIR__ . '/../../../init.php';
-require_once __DIR__ . '/../../../includes/gatewayfunctions.php';
-require_once __DIR__ . '/../../../includes/invoicefunctions.php';
+App::load_function('gateway');
+App::load_function('invoice');
 
 if ( !isset($_GET['invoiceid']) ) {
   exit;
