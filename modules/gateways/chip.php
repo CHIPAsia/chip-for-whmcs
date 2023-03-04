@@ -114,7 +114,7 @@ function chip_config($params = array())
     'purchaseTimeZone' => array(
       'FriendlyName' => 'Time zone',
       'Type'         => 'dropdown',
-      'Description'  => 'Tick to ask CHIP to send receipt upon successful payment.',
+      'Description'  => 'Time zone setting for receipt page.',
       'Default'      => 'Asia/Kuala_Lumpur',
       'Options'      => $formatted_time_zones
     ),
