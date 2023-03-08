@@ -249,7 +249,7 @@ function chip_link($params)
     return '<p>Secret Key and Brand ID not set</p>';
   }
 
-  if ( isset($_GET['success']) && $_GET['success'] == 'true' && !empty(Session::get('chip_' . $params['invoiceid'])) ) {
+  if ( isset($_GET['success']) && !empty(Session::get('chip_' . $params['invoiceid'])) ) {
     $payment_id = Session::getAndDelete('chip_' . $params['invoiceid']);
 
     if ( \ChipAction::complete_payment($params, $payment_id) ) {
