@@ -440,3 +440,27 @@ function chip_storeremote($params) {
     'status' => 'success',
   ];
 }
+
+function chip_adminstatusmsg($params) {
+  $remoteGatewayToken = $params['gatewayid'];
+
+  if ($params['status'] != 'Unpaid') {
+    return false;
+  }
+
+  if ($params['currency'] != 'MYR' ) {
+    return array("alert" => true, "type" => "danger", "alertText" => "<strong>Invalid Currency for Payment</strong><br>" . "CHIP require using one of the following currencies for payment:" . " MYR");
+  }
+
+  if ($remoteGatewayToken) {
+    return [
+      'type' => 'info',
+      'title' => 'CHIP Remote Token',
+      'msg' => 'This customer has a CHIP Token storing their card details for automated recurring billing with ID ' . $remoteGatewayToken,
+    ];
+  }
+}
+
+function chip_deactivate() {
+  // remove database table. but make it remains commented
+}
