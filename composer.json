@@ -1,6 +1,6 @@
 {
     "name": "chip/chip-for-whmcs",
-    "description": "CHIP Payment Gateway Module for the WHMCS Billing Automation Platform",
+    "description": "CHIP Collect Module for the WHMCS Billing Automation Platform",
     "keywords": [
         "third party gateway module",
         "gateway module",
@@ -13,18 +13,13 @@
     "authors": [
         {
             "name": "CHIP IN SDN BHD",
-            "email": "info@chip-in.asia",
+            "email": "support@chip-in.asia",
             "homepage": "https://www.chip-in.asia/"
-        },
-        {
-            "name": "WAN ZULKARNAIN",
-            "email": "wan@chip-in.asia",
-            "role": "Technical Sales Specialist"
         }
     ],
     "support": {
-        "email": "info@chip-in.asia",
+        "email": "support@chip-in.asia",
         "forum": "https://www.facebook.com/groups/3210496372558088",
-        "wiki": "https://support.chip-in.asia/"
+        "wiki": "https://docs.chip-in.asia/"
     }
 }
