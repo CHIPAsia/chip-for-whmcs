@@ -24,7 +24,8 @@ function chip_MetaData()
   return array(
     'DisplayName'   => 'CHIP',
     'APIVersion'    => '1.1',
-    'supportedCurrencies' => array('MYR')
+    // Commented to allow Convert to for Processing
+    // 'supportedCurrencies' => array('MYR')
   );
 }
 
@@ -200,15 +201,15 @@ function chip_config_validate(array $params) {
 
 function chip_link($params)
 {
-  if ( $params['currency'] != 'MYR' ) {
-    $html = '<p>The invoice was quoted in ' . $params['currency'] . ' and CHIP only accept payment in MYR.';
+  // if ( $params['currency'] != 'MYR' ) {
+  //   $html = '<p>The invoice was quoted in ' . $params['currency'] . ' and CHIP only accept payment in MYR.';
 
-    if ( ClientArea::isAdminMasqueradingAsClient() ) {
-      $html .= "\nAdministrator can set convert to processing MYR to enable the payment.";
-    }
+  //   if ( ClientArea::isAdminMasqueradingAsClient() ) {
+  //     $html .= "\nAdministrator can set convert to processing MYR to enable the payment.";
+  //   }
 
-    return $html . '</p>';
-  }
+  //   return $html . '</p>';
+  // }
 
   $chip   = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $payment_methods = $chip->payment_methods('MYR');
@@ -368,7 +369,7 @@ function chip_capture($params)
 
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent'    => 'WHMCS: 1.1.3',
+    'creator_agent'    => 'WHMCS: 1.2.0',
     'reference'        => $params['invoiceid'],
     'client_id'        => $client['id'],
     'platform'         => 'whmcs',
