@@ -201,18 +201,18 @@ function chip_config_validate(array $params) {
 
 function chip_link($params)
 {
-  // if ( $params['currency'] != 'MYR' ) {
-  //   $html = '<p>The invoice was quoted in ' . $params['currency'] . ' and CHIP only accept payment in MYR.';
+  if ( $params['currency'] != 'MYR' ) {
+    $html = '<p>The invoice was quoted in ' . $params['currency'] . ' and CHIP only accept payment in MYR.';
 
-  //   if ( ClientArea::isAdminMasqueradingAsClient() ) {
-  //     $html .= "\nAdministrator can set convert to processing MYR to enable the payment.";
-  //   }
+    if ( ClientArea::isAdminMasqueradingAsClient() ) {
+      $html .= "\nAdministrator can set convert to processing MYR to enable the payment.";
+    }
 
-  //   return $html . '</p>';
-  // }
+    return $html . '</p>';
+  }
 
   $chip   = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $payment_methods = $chip->payment_methods('MYR');
+  $payment_methods = $chip->payment_methods($params['currency']);
 
   $payment_method_configuration_error = false;
 
