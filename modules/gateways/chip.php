@@ -278,17 +278,29 @@ function chip_link($params)
 function chip_refund( $params )
 {
   if ($params['currency'] != 'MYR') {
-    return array();
+    return array(
+      'status'  => 'error',
+      'rawdata' => 'Currency is not MYR!',
+      'transid' => $params['transid'],
+    );
+  }
+
+  if ($params['basecurrency'] != 'MYR') {
+    return array(
+      'status'  => 'error',
+      'rawdata' => 'Refund for Purchase ID ' . $params['transid'] . ' needs to be done through CHIP Dashboard.',
+      'transid' => $params['transid'],
+    );
   }
 
   $chip   = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $result = $chip->refund_payment($params['transid'], array( 'amount' => round($params['amount']  * 100)) );
 
-  if ( array_key_exists('__all__', $result) ) {
+  if ( !array_key_exists( 'id', $result ) OR $result['status'] != 'success') {
     return array(
       'status'  => 'error',
       'rawdata' => json_encode($result),
-      'transid' => '',
+      'transid' => $params['transid'],
     );
   }
 
@@ -443,23 +455,7 @@ function chip_storeremote($params) {
 }
 
 function chip_adminstatusmsg($params) {
-  $remoteGatewayToken = $params['gatewayid'];
-
-  if ($params['status'] != 'Unpaid') {
-    return false;
-  }
-
-  if ($params['currency'] != 'MYR' ) {
-    return array("alert" => true, "type" => "danger", "alertText" => "<strong>Invalid Currency for Payment</strong><br>" . "CHIP require using one of the following currencies for payment:" . " MYR");
-  }
-
-  if ($remoteGatewayToken) {
-    return [
-      'type' => 'info',
-      'title' => 'CHIP Remote Token',
-      'msg' => 'This customer has a CHIP Token storing their card details for automated recurring billing with ID ' . $remoteGatewayToken,
-    ];
-  }
+  return false;
 }
 
 function chip_deactivate() {
