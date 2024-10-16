@@ -2,6 +2,7 @@
 
 use WHMCS\Session;
 use WHMCS\Invoice;
+use WHMCS\Authentication\CurrentUser;
 
 require_once __DIR__ . '/api.php';
 require_once __DIR__ . '/action.php';
@@ -13,21 +14,37 @@ if ( !isset($_GET['invoiceid']) ) {
   exit;
 }
 
-$chip_invoice_id = intval(Session::getAndDelete( 'chip_invoice_id' ));
 $get_invoice_id  = intval($_GET['invoiceid']);
 
-if ( empty($chip_invoice_id) || empty($get_invoice_id) ) {
+if ( empty($get_invoice_id) ) {
   header( 'Location: ' . $CONFIG['SystemURL'] );
   exit;
 }
 
-if ( $get_invoice_id != $chip_invoice_id ) {
-  header( 'Location: ' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $get_invoice_id );
+$invoice = new Invoice($get_invoice_id);
+$params  = $invoice->getGatewayInvoiceParams();
+
+// Note: https://classdocs.whmcs.com/8.0/WHMCS/Authentication/CurrentUser.html
+$currentUser = new CurrentUser;
+$user = $currentUser->user();
+$admin = $currentUser->isAuthenticatedAdmin();
+
+if ($admin) {
+  // The request is made by admin. No further check required.
+} elseif($user) {
+  // Take client() because it means to get active client for management.
+  $current_user_client_id = $currentUser->client()->id;
+  $param_client_id = $params['clientdetails']['client_id'];
+
+  if ($current_user_client_id != $param_client_id) {
+    logActivity('Attempt to access other client invoice with number #' . $get_invoice_id, $current_user_client_id);
+    header( 'Location: ' . $CONFIG['SystemURL'] );
+    exit;
+  }
+} else {
+  header( 'Location: ' . $CONFIG['SystemURL'] );
   exit;
 }
-
-$invoice = new Invoice($chip_invoice_id);
-$params  = $invoice->getGatewayInvoiceParams();
 
 if ( $params['paymentmethod'] != 'chip' ) {
   header( 'Location: ' . $params['returnurl'] );
@@ -47,7 +64,7 @@ $send_params = array(
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
   'cancel_redirect'  => $params['returnurl'],
-  'creator_agent'    => 'WHMCS: 1.2.0',
+  'creator_agent'    => 'WHMCS: 1.3.0',
   'reference'        => $params['invoiceid'],
   'platform'         => 'whmcs',
   'send_receipt'     => $params['purchaseSendReceipt'] == 'on',
