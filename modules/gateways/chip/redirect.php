@@ -35,10 +35,13 @@ if ($admin) {
   $param_client_id = $params['clientdetails']['client_id'];
 
   if ($current_user_client_id != $param_client_id) {
-    exit('Invoice belongs to other client');
+    logActivity('Attempt to access other client invoice with number #' . $get_invoice_id, $current_user_client_id);
+    header( 'Location: ' . $CONFIG['SystemURL'] );
+    exit;
   }
 } else {
-  exit('Invalid invoice permission');
+  header( 'Location: ' . $CONFIG['SystemURL'] );
+  exit;
 }
 
 if ( $params['paymentmethod'] != 'chip' ) {
