@@ -2,6 +2,7 @@
 
 use WHMCS\Session;
 use WHMCS\Invoice;
+use WHMCS\Authentication\CurrentUser;
 
 require_once __DIR__ . '/api.php';
 require_once __DIR__ . '/action.php';
@@ -22,6 +23,23 @@ if ( empty($get_invoice_id) ) {
 
 $invoice = new Invoice($get_invoice_id);
 $params  = $invoice->getGatewayInvoiceParams();
+
+$currentUser = new CurrentUser;
+$user = $currentUser->user();
+$admin = $currentUser->isAuthenticatedAdmin();
+
+if ($admin) {
+  // The request is made by admin. No further check required.
+} elseif($user) {
+  $current_user_client_id = $currentUser->client()->id;
+  $param_client_id = $params['clientdetails']['client_id'];
+
+  if ($current_user_client_id != $param_client_id) {
+    exit('Invoice belongs to other client');
+  }
+} else {
+  exit('Invalid invoice permission');
+}
 
 if ( $params['paymentmethod'] != 'chip' ) {
   header( 'Location: ' . $params['returnurl'] );
