@@ -24,6 +24,7 @@ if ( empty($get_invoice_id) ) {
 $invoice = new Invoice($get_invoice_id);
 $params  = $invoice->getGatewayInvoiceParams();
 
+// Note: https://classdocs.whmcs.com/8.0/WHMCS/Authentication/CurrentUser.html
 $currentUser = new CurrentUser;
 $user = $currentUser->user();
 $admin = $currentUser->isAuthenticatedAdmin();
@@ -31,6 +32,7 @@ $admin = $currentUser->isAuthenticatedAdmin();
 if ($admin) {
   // The request is made by admin. No further check required.
 } elseif($user) {
+  // Take client() because it means to get active client for management.
   $current_user_client_id = $currentUser->client()->id;
   $param_client_id = $params['clientdetails']['client_id'];
 
