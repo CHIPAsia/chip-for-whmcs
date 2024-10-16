@@ -13,20 +13,14 @@ if ( !isset($_GET['invoiceid']) ) {
   exit;
 }
 
-$chip_invoice_id = intval(Session::getAndDelete( 'chip_invoice_id' ));
 $get_invoice_id  = intval($_GET['invoiceid']);
 
-if ( empty($chip_invoice_id) || empty($get_invoice_id) ) {
+if ( empty($get_invoice_id) ) {
   header( 'Location: ' . $CONFIG['SystemURL'] );
   exit;
 }
 
-if ( $get_invoice_id != $chip_invoice_id ) {
-  header( 'Location: ' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $get_invoice_id );
-  exit;
-}
-
-$invoice = new Invoice($chip_invoice_id);
+$invoice = new Invoice($get_invoice_id);
 $params  = $invoice->getGatewayInvoiceParams();
 
 if ( $params['paymentmethod'] != 'chip' ) {

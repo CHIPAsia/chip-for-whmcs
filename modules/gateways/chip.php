@@ -258,8 +258,6 @@ function chip_link($params)
     }
   }
 
-  Session::set( 'chip_invoice_id' , $params['invoiceid'] );
-
   $html = '<p>'
         . nl2br($params['paymentInformation'])
         . '<br />'
