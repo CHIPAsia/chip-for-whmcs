@@ -47,20 +47,30 @@ function chip_dnqr_config($params = array())
     // do nothing
   } else {
     $chip   = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
-    $result = $chip->payment_methods('MYR');
+    // $result = $chip->payment_methods('MYR');
 
-    // Display only duitnow_qr
-    // $result = [
-    //     'available_payment_methods' => [
-    //         'duitnow_qr'
-    //         ]
-    //     ];
+    // List all payment methods
+    $result = [
+        'available_payment_methods' => [
+              "fpx",
+              "fpx_b2b1",
+              "duitnow_qr",
+              "maestro",
+              "mastercard",
+              "visa",
+              "razer_atome",
+              "razer_grabpay",
+              "razer_maybankqr",
+              "razer_shopeepay",
+              "razer_tng"
+            ]
+        ];
 
     if ( array_key_exists('available_payment_methods', $result) AND !empty($result['available_payment_methods'])) {
       foreach( $result['available_payment_methods'] as $apm) {
         
 
-        // Set yes to DNQR
+        // Set yes to DNQR by default
         if ($apm == 'duitnow_qr') {
           $available_payment_method['payment_method_whitelist_' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
@@ -170,7 +180,7 @@ function chip_dnqr_config($params = array())
       'FriendlyName' => 'Percentage Charges (%)',
       'Type'         => 'text',
       'Size'         => '3',
-      'Default'      => '100',
+      'Default'      => '0',
       'Description'  => 'Percentage charges. Input 100 for 1%. Default to: 0. This will only be applied when additional charges are activated.',
     ),
     'A' => array(
