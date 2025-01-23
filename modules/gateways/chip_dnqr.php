@@ -431,6 +431,29 @@ function chip_dnqr_capture($params)
     $system_url = preg_replace("/^http:/i", "https:", $system_url);
   }
 
+  // If additional charge is on, then
+  if ($params['additionalCharge']) {
+    
+    $total_charge = 0;
+
+    // Check if both are set 
+
+    // Check if fixed or percentage
+    if ( $params['fixedCharges'] > 0 ) {
+      // Add amount with fixed charge (RM1.00 = 100)
+      $charge = ($params['fixedCharges'] / 100);
+      $total_charge = $total_charge + $charge;
+    }
+
+    if ( $params['percentageCharges'] > 0 ) {
+      // 1% = 100
+      $charge = $params['amount'] * ( $params['percentageCharges'] / 100 ) / 100;
+      $total_charge = $total_charge + $charge;
+    }
+
+    $params['amount'] = $params['amount'] + $total_charge;
+  }
+
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip_dnqr.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
     'creator_agent'    => 'WHMCS: 1.2.0',

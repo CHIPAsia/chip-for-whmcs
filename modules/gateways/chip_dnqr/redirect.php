@@ -64,6 +64,29 @@ if ($params['systemUrlHttps'] == 'https') {
 
 logActivity(print_r('Redirecting..', true), 0);
 
+// If additional charge is on, then
+if ($params['additionalCharge']) {
+
+  $total_charge = 0;
+
+  // Check if both are set 
+
+  // Check if fixed or percentage
+  if ( $params['fixedCharges'] > 0 ) {
+    // Add amount with fixed charge (RM1.00 = 100)
+    $charge = ($params['fixedCharges'] / 100);
+    $total_charge = $total_charge + $charge;
+  }
+
+  if ( $params['percentageCharges'] > 0 ) {
+    // 1% = 100
+    $charge = $params['amount'] * ( $params['percentageCharges'] / 100 ) / 100;
+    $total_charge = $total_charge + $charge;
+  }
+
+  $params['amount'] = $params['amount'] + $total_charge;
+}
+
 $send_params = array(
   'success_callback' => $system_url . 'modules/gateways/callback/chip_dnqr.php?invoiceid=' . $get_invoice_id,
   'success_redirect' => $params['returnurl'] . '&success=true',
