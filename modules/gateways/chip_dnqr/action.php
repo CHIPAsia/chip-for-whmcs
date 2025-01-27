@@ -143,5 +143,5 @@ class ChipActionDNQR {
 }
 
 if (isset($_GET['clean_up_public_key'])) {
-  ChipActionDNQRDNQR::clean_up_public_key();
+  ChipActionDNQR::clean_up_public_key();
 }
