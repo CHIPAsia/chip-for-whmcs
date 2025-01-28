@@ -91,7 +91,15 @@ function chip_cards_config($params = array())
       $show_whitelist_option = true;
     }
 
-    $result = $chip->payment_recurring_methods('MYR');
+    // Recurring payment methods
+    // $result = $chip->payment_recurring_methods('MYR');
+    $result = [
+        'available_payment_methods' => [
+              "maestro",
+              "mastercard",
+              "visa"
+            ]
+        ];
 
     if ( array_key_exists('available_payment_methods', $result) AND !empty($result['available_payment_methods'])) {
       $show_force_token_option = true;
@@ -214,7 +222,23 @@ function chip_cards_config($params = array())
 function chip_cards_config_validate(array $params) {
   $chip   = \ChipAPICards::get_instance($params['secretKey'], $params['brandId']);
 
-  $payment_methods = $chip->payment_methods('MYR');
+//   Get all payment methods available
+//   $payment_methods = $chip->payment_methods('MYR');
+$payment_methods = [
+    'available_payment_methods' => [
+          "fpx",
+          "fpx_b2b1",
+          "duitnow_qr",
+          "maestro",
+          "mastercard",
+          "visa",
+          "razer_atome",
+          "razer_grabpay",
+          "razer_maybankqr",
+          "razer_shopeepay",
+          "razer_tng"
+        ]
+    ];
 
   $payment_method_configuration_error = false;
   // logActivity(print_r($params, true), 0);
@@ -242,6 +266,9 @@ function chip_cards_config_validate(array $params) {
       }
     }
 
+    logActivity(print_r($configured_payment_methods, true));
+
+    // Check if configured payment methods available
     foreach ($configured_payment_methods as $cpm) {
       if (in_array($cpm, $payment_methods['available_payment_methods'])) {
         $payment_method_configuration_error = false;
@@ -272,7 +299,22 @@ function chip_cards_link($params)
   }
 
   $chip   = \ChipAPICards::get_instance($params['secretKey'], $params['brandId']);
-  $payment_methods = $chip->payment_methods($params['currency']);
+  // $payment_methods = $chip->payment_methods($params['currency']);
+  $payment_methods = [
+    'available_payment_methods' => [
+          "fpx",
+          "fpx_b2b1",
+          "duitnow_qr",
+          "maestro",
+          "mastercard",
+          "visa",
+          "razer_atome",
+          "razer_grabpay",
+          "razer_maybankqr",
+          "razer_shopeepay",
+          "razer_tng"
+        ]
+    ];
 
   $payment_method_configuration_error = false;
 
@@ -298,6 +340,7 @@ function chip_cards_link($params)
 
     foreach ($configured_payment_methods as $cpm) {
       if (in_array($cpm, $payment_methods['available_payment_methods'])) {
+        logActivity('Payment methods pass');
         $payment_method_configuration_error = false;
         break;
       }
