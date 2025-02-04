@@ -206,7 +206,6 @@ function chip_fpx_config($params = array())
   }
 
   if ($show_whitelist_option) {
-    // logActivity('Message goes here', 0);
     $config_params['paymentWhitelist'] = array(
       'FriendlyName' => 'Payment Method Whitelisting',
       'Type'         => 'yesno',
@@ -241,13 +240,10 @@ $payment_methods = [
     ];
 
   $payment_method_configuration_error = false;
-  // logActivity(print_r($params, true), 0);
 
   if ($params['paymentWhitelist'] == 'on') {
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
-    logActivity('CHIP Payment Whitelist ON', 0);
-    // logActivity(getGatewayVariables('chip'));
     $result = preg_grep('/payment_method_whitelist_.*/', $keys);
 
     $configured_payment_methods = array();
@@ -266,8 +262,6 @@ $payment_methods = [
       }
     }
 
-    // logActivity(print_r($configured_payment_methods, true));
-
     // Check if configured payment methods available
     foreach ($configured_payment_methods as $cpm) {
       if (in_array($cpm, $payment_methods['available_payment_methods'])) {
@@ -275,11 +269,7 @@ $payment_methods = [
         break;
       }
     }
-
-    // logActivity(print_r($configured_payment_methods, true), 0);
   }
-
-  // logActivity('error? - ' . $payment_method_configuration_error, 0);
 
   if ($payment_method_configuration_error) {
     throw new NotServicable("Invalid settings for payment method whitelisting.");
@@ -340,7 +330,6 @@ function chip_fpx_link($params)
 
     foreach ($configured_payment_methods as $cpm) {
       if (in_array($cpm, $payment_methods['available_payment_methods'])) {
-        // logActivity('Payment methods pass');
         $payment_method_configuration_error = false;
         break;
       }
@@ -374,8 +363,6 @@ function chip_fpx_link($params)
         . ': '
         . $params['invoicenum']
         . '</p>';
-
-  logActivity(print_r($html, true));
 
   return $html;
 }
@@ -469,8 +456,6 @@ function chip_fpx_TransactionInformation(array $params = []): Information
 // $params = https://pastebin.com/vz16pSJV
 function chip_fpx_capture($params)
 {
-
-  logActivity('Running card capture');
 
   if ( $params['currency'] != 'MYR' ) {
     return array("status" => "declined", 'declinereason' => 'Unsupported currency');

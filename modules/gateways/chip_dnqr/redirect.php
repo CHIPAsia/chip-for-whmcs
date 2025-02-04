@@ -21,8 +21,6 @@ if ( empty($get_invoice_id) ) {
   exit;
 }
 
-logActivity(print_r('Redirect.php in invoice id' . $get_invoice_id, true), 0);
-
 $invoice = new Invoice($get_invoice_id);
 $params  = $invoice->getGatewayInvoiceParams();
 
@@ -46,10 +44,7 @@ if ($admin) {
   exit;
 }
 
-logActivity('paymentMethod: ' . $params['paymentmethod']);
-
 if ( $params['paymentmethod'] != 'chip_dnqr' ) {
-  logActivity('redirecting to ' . $params['returnurl']);
   header( 'Location: ' . $params['returnurl'] );
 }
 
@@ -61,8 +56,6 @@ $system_url = $params['systemurl'];
 if ($params['systemUrlHttps'] == 'https') {
   $system_url = preg_replace("/^http:/i", "https:", $system_url);
 }
-
-logActivity(print_r('Redirecting..', true), 0);
 
 // If additional charge is on, then
 if ($params['additionalCharge']) {

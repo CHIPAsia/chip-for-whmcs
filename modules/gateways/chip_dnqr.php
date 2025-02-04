@@ -198,7 +198,6 @@ function chip_dnqr_config($params = array())
   }
 
   if ($show_whitelist_option) {
-    // logActivity('Message goes here', 0);
     $config_params['paymentWhitelist'] = array(
       'FriendlyName' => 'Payment Method Whitelisting',
       'Type'         => 'yesno',
@@ -217,13 +216,10 @@ function chip_dnqr_config_validate(array $params) {
   $payment_methods = $chip->payment_methods('MYR');
 
   $payment_method_configuration_error = false;
-  // logActivity(print_r($params, true), 0);
 
   if ($params['paymentWhitelist'] == 'on') {
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
-    logActivity('CHIP Payment Whitelist ON', 0);
-    // logActivity(getGatewayVariables('chip'));
     $result = preg_grep('/payment_method_whitelist_.*/', $keys);
 
     $configured_payment_methods = array();
@@ -248,11 +244,7 @@ function chip_dnqr_config_validate(array $params) {
         break;
       }
     }
-
-    logActivity(print_r($configured_payment_methods, true), 0);
   }
-
-  // logActivity('error? - ' . $payment_method_configuration_error, 0);
 
   if ($payment_method_configuration_error) {
     throw new NotServicable("Invalid settings for payment method whitelisting.");
@@ -331,8 +323,6 @@ function chip_dnqr_link($params)
         . ': '
         . $params['invoicenum']
         . '</p>';
-
-  logActivity(print_r($html, true));
 
   return $html;
 }
