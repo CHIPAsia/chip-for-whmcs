@@ -83,7 +83,7 @@ class ChipActionFPX {
 
     if ($payment['is_recurring_token']) {
       $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
-      $gateway = Gateway::factory('chip');
+      $gateway = Gateway::factory('chip_fpx');
       $payMethod->description = $payment['transaction_data']['extra']['cardholder_name'];
       $payMethod->setGateway($gateway);
       $payMethod_payment = $payMethod->payment;
@@ -104,7 +104,7 @@ class ChipActionFPX {
 
     if ($send_credit_card_email) {
       $emailTemplate = "Credit Card Payment Confirmation";
-      $gateway = WHMCS\Module\Gateway::factory('chip');
+      $gateway = WHMCS\Module\Gateway::factory('chip_fpx');
       if ($customEmailTemplate = $gateway->getMetaDataValue("successEmail")) {
         $customEmailTemplate = WHMCS\Mail\Template::where("name", "=", $customEmailTemplate)->first();
         if ($customEmailTemplate) {

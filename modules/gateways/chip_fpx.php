@@ -358,7 +358,7 @@ function chip_fpx_link($params)
   if ( isset($_GET['success']) && !empty(Session::get('chip_fpx_' . $params['invoiceid'])) ) {
     $payment_id = Session::getAndDelete('chip_fpx_' . $params['invoiceid']);
 
-    if ( \ChipActionCards::complete_payment($params, $payment_id) ) {
+    if ( \ChipActionFPX::complete_payment($params, $payment_id) ) {
       return '<script>window.location.reload();</script>';
     }
   }

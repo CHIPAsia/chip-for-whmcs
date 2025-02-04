@@ -31,7 +31,7 @@ if (!$gatewayParams['type']) {
 $invoice = new WHMCS\Invoice($get_invoice_id);
 $params  = $invoice->getGatewayInvoiceParams();
 
-if ( \openssl_verify( $content,  \base64_decode($_SERVER['HTTP_X_SIGNATURE']), \ChipAction::retrieve_public_key($params), 'sha256WithRSAEncryption' ) != 1 ) {
+if ( \openssl_verify( $content,  \base64_decode($_SERVER['HTTP_X_SIGNATURE']), \ChipActionDNQR::retrieve_public_key($params), 'sha256WithRSAEncryption' ) != 1 ) {
   \header( 'Forbidden', true, 403 );
   die('Invalid X Signature');
 }
@@ -42,6 +42,6 @@ if ($payment['status'] != 'paid') {
   die('Status is not paid');
 }
 
-\ChipAction::complete_payment($params, $payment);
+\ChipActionDNQR::complete_payment($params, $payment);
 
 echo 'Done';
