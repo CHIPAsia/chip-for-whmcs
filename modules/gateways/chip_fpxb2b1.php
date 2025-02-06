@@ -496,7 +496,7 @@ function chip_fpxb2b1_capture($params)
 
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip_fpxb2b1.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent'    => 'WHMCS: 1.2.0',
+    'creator_agent'    => 'WHMCS: 1.4.0',
     'reference'        => $params['invoiceid'],
     'client_id'        => $client['id'],
     'platform'         => 'whmcs',
