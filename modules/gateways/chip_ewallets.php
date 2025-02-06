@@ -364,8 +364,6 @@ function chip_ewallets_link($params)
         . $params['invoicenum']
         . '</p>';
 
-  logActivity(print_r($html, true));
-
   return $html;
 }
 
