@@ -51,7 +51,7 @@ function chip_config($params = array())
 
     if ( array_key_exists('available_payment_methods', $result) AND !empty($result['available_payment_methods'])) {
       foreach( $result['available_payment_methods'] as $apm) {
-        $available_payment_method['payment_method_whitelist_' . $apm] = array(
+        $available_payment_method['payment_method_whitelist|' . $apm] = array(
           'FriendlyName' => 'Whitelist ' . ucfirst($apm),
           'Type'         => 'yesno',
           'Description'  => 'Tick to enable ' . ucfirst($apm),
@@ -171,18 +171,13 @@ function chip_config_validate(array $params) {
   if ($params['paymentWhitelist'] == 'on') {
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist_.*/', $keys);
+    $result = preg_grep('/payment_method_whitelist\|.*/', $keys);
 
     $configured_payment_methods = array();
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
-        $key_array = explode('_', $key);
-        
-        if (end($key_array) == 'b2b1') {
-          $configured_payment_methods[] = 'fpx_b2b1';
-        } else {
-          $configured_payment_methods[] = end($key_array);
-        }
+        $key_array = explode('|', $key);
+        $configured_payment_methods[] = end($key_array);
       }
     }
 
@@ -219,18 +214,13 @@ function chip_link($params)
   if ($params['paymentWhitelist'] == 'on') {
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist_.*/', $keys);
+    $result = preg_grep('/payment_method_whitelist\|.*/', $keys);
 
     $configured_payment_methods = array();
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
-        $key_array = explode('_', $key);
-
-        if (end($key_array) == 'b2b1') {
-          $configured_payment_methods[] = 'fpx_b2b1';
-        } else {
-          $configured_payment_methods[] = end($key_array);
-        }
+        $key_array = explode('|', $key);
+        $configured_payment_methods[] = end($key_array);
       }
     }
 

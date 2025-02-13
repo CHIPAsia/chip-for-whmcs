@@ -4,25 +4,9 @@ This module adds CHIP payment method option to your WHMCS.
 
 ## Installation
 
-* [Download zip file of WHMCS plugin.](https://github.com/CHIPAsia/chip-for-whmcs/archive/master.zip)
+* [Download zip file of WHMCS plugin.](https://github.com/CHIPAsia/chip-for-whmcs/archive/main.zip)
 * Extract the dowloaded zip files
 * Upload folder modules to WHMCS installation directory
-
-### File Structure
-
-The file must be extracted as follows:
-
-```
- modules/gateways/
-  |- callback/chip.php
-  |- chip/action.php
-  |- chip/api.php
-  |- chip/logo.png
-  |- chip/chiplogo.png
-  |- chip/redirect.php
-  |- chip/whmcs.json
-  |  chip.php
-```
 
 ## Configuration
 

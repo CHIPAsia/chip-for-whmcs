@@ -95,18 +95,13 @@ if (isset($params['paymentWhitelist']) AND $params['paymentWhitelist'] == 'on') 
   $send_params['payment_method_whitelist'] = array();
 
   $keys = array_keys($params);
-  $result = preg_grep('/payment_method_whitelist_.*/', $keys);
+  $result = preg_grep('/payment_method_whitelist\|.*/', $keys);
 
 
   foreach ($result as $key) {
     if ($params[$key] == 'on') {
-      $key_array = explode('_', $key);
-
-      if (end($key_array) == 'b2b1') {
-        $send_params['payment_method_whitelist'][] = 'fpx_b2b1';
-      } else {
-        $send_params['payment_method_whitelist'][] = end($key_array);
-      }
+      $key_array = explode('|', $key);
+      $send_params['payment_method_whitelist'][] = end($key_array);
     }
   }
 }
