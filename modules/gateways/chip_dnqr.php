@@ -85,7 +85,6 @@ function chip_dnqr_config($params = array())
           $available_payment_method['payment_method_whitelist__' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
             'Type' => 'yesno',
-            // 'Default'      => 'yes',
             'Description' => 'Tick to enable ' . ucfirst($apm),
           );
         }
@@ -205,6 +204,7 @@ function chip_dnqr_config($params = array())
       'FriendlyName' => 'Payment Method Whitelisting',
       'Type' => 'yesno',
       'Description' => 'Tick to enforce payment method whitelisting.',
+      'Default' => 'yes',
     );
 
     $config_params += $available_payment_method;
