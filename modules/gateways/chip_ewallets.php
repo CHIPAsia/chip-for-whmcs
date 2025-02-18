@@ -53,17 +53,19 @@ function chip_ewallets_config($params = array())
     // List all payment methods
     $result = [
       'available_payment_methods' => [
-        "fpx",
-        "fpx_b2b1",
-        "duitnow_qr",
-        "maestro",
-        "mastercard",
-        "visa",
-        "razer_atome",
-        "razer_grabpay",
-        "razer_maybankqr",
-        "razer_shopeepay",
-        "razer_tng"
+        'fpx',
+        'fpx_b2b1',
+        'duitnow_qr',
+        'maestro',
+        'mastercard',
+        'visa',
+        'razer_atome',
+        'razer_grabpay',
+        'razer_maybankqr',
+        'razer_shopeepay',
+        'razer_tng',
+        'mpgs_apple_pay',
+        'mpgs_google_pay'
       ]
     ];
 
@@ -223,21 +225,7 @@ function chip_ewallets_config_validate(array $params)
 {
   $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
 
-  $payment_methods = [
-    'available_payment_methods' => [
-      "fpx",
-      "fpx_b2b1",
-      "duitnow_qr",
-      "maestro",
-      "mastercard",
-      "visa",
-      "razer_atome",
-      "razer_grabpay",
-      "razer_maybankqr",
-      "razer_shopeepay",
-      "razer_tng",
-    ]
-  ];
+  $payment_methods = $chip->payment_methods('MYR');
 
   $payment_method_configuration_error = false;
 
@@ -284,17 +272,19 @@ function chip_ewallets_link($params)
   // $payment_methods = $chip->payment_methods($params['currency']);
   $payment_methods = [
     'available_payment_methods' => [
-      "fpx",
-      "fpx_b2b1",
-      "duitnow_qr",
-      "maestro",
-      "mastercard",
-      "visa",
-      "razer_atome",
-      "razer_grabpay",
-      "razer_maybankqr",
-      "razer_shopeepay",
-      "razer_tng"
+      'fpx',
+      'fpx_b2b1',
+      'duitnow_qr',
+      'maestro',
+      'mastercard',
+      'visa',
+      'razer_atome',
+      'razer_grabpay',
+      'razer_maybankqr',
+      'razer_shopeepay',
+      'razer_tng',
+      'mpgs_apple_pay',
+      'mpgs_google_pay'
     ]
   ];
 

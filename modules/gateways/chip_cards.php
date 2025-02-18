@@ -53,17 +53,19 @@ function chip_cards_config($params = array())
     // List all payment methods
     $result = [
       'available_payment_methods' => [
-        "fpx",
-        "fpx_b2b1",
-        "duitnow_qr",
-        "maestro",
-        "mastercard",
-        "visa",
-        "razer_atome",
-        "razer_grabpay",
-        "razer_maybankqr",
-        "razer_shopeepay",
-        "razer_tng"
+        'fpx',
+        'fpx_b2b1',
+        'duitnow_qr',
+        'maestro',
+        'mastercard',
+        'visa',
+        'razer_atome',
+        'razer_grabpay',
+        'razer_maybankqr',
+        'razer_shopeepay',
+        'razer_tng',
+        'mpgs_apple_pay',
+        'mpgs_google_pay'
       ]
     ];
 
@@ -225,17 +227,19 @@ function chip_cards_config_validate(array $params)
 
   $payment_methods = [
     'available_payment_methods' => [
-      "fpx",
-      "fpx_b2b1",
-      "duitnow_qr",
-      "maestro",
-      "mastercard",
-      "visa",
-      "razer_atome",
-      "razer_grabpay",
-      "razer_maybankqr",
-      "razer_shopeepay",
-      "razer_tng"
+      'fpx',
+      'fpx_b2b1',
+      'duitnow_qr',
+      'maestro',
+      'mastercard',
+      'visa',
+      'razer_atome',
+      'razer_grabpay',
+      'razer_maybankqr',
+      'razer_shopeepay',
+      'razer_tng',
+      'mpgs_apple_pay',
+      'mpgs_google_pay'
     ]
   ];
 
@@ -285,17 +289,19 @@ function chip_cards_link($params)
   // $payment_methods = $chip->payment_methods($params['currency']);
   $payment_methods = [
     'available_payment_methods' => [
-      "fpx",
-      "fpx_b2b1",
-      "duitnow_qr",
-      "maestro",
-      "mastercard",
-      "visa",
-      "razer_atome",
-      "razer_grabpay",
-      "razer_maybankqr",
-      "razer_shopeepay",
-      "razer_tng"
+      'fpx',
+      'fpx_b2b1',
+      'duitnow_qr',
+      'maestro',
+      'mastercard',
+      'visa',
+      'razer_atome',
+      'razer_grabpay',
+      'razer_maybankqr',
+      'razer_shopeepay',
+      'razer_tng',
+      'mpgs_apple_pay',
+      'mpgs_google_pay'
     ]
   ];
 
