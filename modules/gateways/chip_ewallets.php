@@ -109,7 +109,7 @@ function chip_ewallets_config($params = array())
   $config_params =  array(
     'FriendlyName' => array(
       'Type'  => 'System',
-      'Value' => 'CHIP Ewallets',
+      'Value' => 'E-Wallet',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',

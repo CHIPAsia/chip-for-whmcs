@@ -101,7 +101,7 @@ function chip_dnqr_config($params = array())
   $config_params =  array(
     'FriendlyName' => array(
       'Type'  => 'System',
-      'Value' => 'CHIP DuitNow QR (DNQR)',
+      'Value' => 'Duitnow QR (E-Wallet: MAE, GrabPay, ShopeePay, TnG)',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',

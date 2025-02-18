@@ -109,7 +109,7 @@ function chip_fpx_config($params = array())
   $config_params =  array(
     'FriendlyName' => array(
       'Type'  => 'System',
-      'Value' => 'CHIP Cards',
+      'Value' => 'FPX (Online Banking)',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',

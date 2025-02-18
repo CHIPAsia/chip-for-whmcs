@@ -106,10 +106,10 @@ function chip_cards_config($params = array())
     }
   }
 
-  $config_params =  array(
+  $config_params = array(
     'FriendlyName' => array(
       'Type'  => 'System',
-      'Value' => 'CHIP Cards',
+      'Value' => 'Visa / Mastercard',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',

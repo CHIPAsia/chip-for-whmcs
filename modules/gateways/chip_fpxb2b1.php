@@ -106,10 +106,10 @@ function chip_fpxb2b1_config($params = array())
     }
   }
 
-  $config_params =  array(
+  $config_params = array(
     'FriendlyName' => array(
       'Type'  => 'System',
-      'Value' => 'CHIP Cards',
+      'Value' => 'FPX B2B (Business Online Banking)',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',
