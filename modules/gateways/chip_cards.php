@@ -72,14 +72,14 @@ function chip_cards_config($params = array())
 
         // Set yes to Cards by default
         if (in_array($apm, ['maestro', 'mastercard', 'visa'])) {
-          $available_payment_method['payment_method_whitelist_' . $apm] = array(
+          $available_payment_method['payment_method_whitelist|' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
             'Type'         => 'yesno',
             'Default'      => 'yes',
             'Description'  => 'Tick to enable ' . ucfirst($apm),
           );
         } else {
-          $available_payment_method['payment_method_whitelist_' . $apm] = array(
+          $available_payment_method['payment_method_whitelist|' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
             'Type'         => 'yesno',
             // 'Default'      => 'yes',
@@ -245,21 +245,13 @@ $payment_methods = [
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
 
-    $result = preg_grep('/payment_method_whitelist_.*/', $keys);
+    $result = preg_grep('/payment_method_whitelist\|.*/', $keys);
 
     $configured_payment_methods = array();
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
-        $key_array = explode('_', $key);
-        
-        if (end($key_array) == 'b2b1') {
-          $configured_payment_methods[] = 'fpx_b2b1';
-        } elseif (end($key_array) == 'qr') {
-          $configured_payment_methods[] = 'duitnow_qr';
-        }
-        else {
-          $configured_payment_methods[] = end($key_array);
-        }
+        $key_array = explode('|', $key);
+        $configured_payment_methods[] = end($key_array);
       }
     }
 
@@ -312,20 +304,13 @@ function chip_cards_link($params)
   if ($params['paymentWhitelist'] == 'on') {
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist_.*/', $keys);
+    $result = preg_grep('/payment_method_whitelist\|.*/', $keys);
 
     $configured_payment_methods = array();
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
-        $key_array = explode('_', $key);
-
-        if (end($key_array) == 'b2b1') {
-          $configured_payment_methods[] = 'fpx_b2b1';
-        } elseif (end($key_array) == 'qr') {
-            $configured_payment_methods[] = 'duitnow_qr';
-        } else {
-          $configured_payment_methods[] = end($key_array);
-        }
+        $key_array = explode('|', $key);
+        $configured_payment_methods[] = end($key_array);
       }
     }
 

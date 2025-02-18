@@ -1,7 +1,5 @@
 <?php
 
-define("ROOT_URL", "https://gate.chip-in.asia");
-
 class ChipAPIDNQR
 {
   private static $_instance;
@@ -126,7 +124,7 @@ class ChipAPIDNQR
 
     $response = $this->request(
       $method,
-      sprintf("%s/api/v1%s", ROOT_URL, $route),
+      sprintf("%s/api/v1%s", 'https://gate.chip-in.asia', $route),
       $params,
       [
         'Content-type: application/json',
