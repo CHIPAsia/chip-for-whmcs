@@ -72,14 +72,14 @@ function chip_fpx_config($params = array())
 
         // Set yes to FPX by default
         if (in_array($apm, ['fpx'])) {
-          $available_payment_method['payment_method_whitelist|' . $apm] = array(
+          $available_payment_method['payment_method_whitelist__' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
             'Type'         => 'yesno',
             'Default'      => 'yes',
             'Description'  => 'Tick to enable ' . ucfirst($apm),
           );
         } else {
-          $available_payment_method['payment_method_whitelist|' . $apm] = array(
+          $available_payment_method['payment_method_whitelist__' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
             'Type'         => 'yesno',
             // 'Default'      => 'yes',
@@ -244,12 +244,12 @@ $payment_methods = [
   if ($params['paymentWhitelist'] == 'on') {
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist\|.*/', $keys);
+    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
     $configured_payment_methods = array();
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
-        $key_array = explode('|', $key);
+        $key_array = explode('__', $key);
         $configured_payment_methods[] = end($key_array);
       }
     }
@@ -303,12 +303,12 @@ function chip_fpx_link($params)
   if ($params['paymentWhitelist'] == 'on') {
     $payment_method_configuration_error = true;
     $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist\|.*/', $keys);
+    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
     $configured_payment_methods = array();
     foreach ($result as $key) {
       if ($params[$key] == 'on') {
-        $key_array = explode('|', $key);
+        $key_array = explode('__', $key);
         $configured_payment_methods[] = end($key_array);
       }
     }
