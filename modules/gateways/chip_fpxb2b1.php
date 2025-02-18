@@ -22,8 +22,8 @@ require_once __DIR__ . '/chip_fpxb2b1/action.php';
 function chip_fpxb2b1_MetaData()
 {
   return array(
-    'DisplayName'   => 'CHIP FPX B2B1',
-    'APIVersion'    => '1.1',
+    'DisplayName' => 'CHIP FPX B2B1',
+    'APIVersion' => '1.1',
     // Commented to allow Convert to for Processing
     // 'supportedCurrencies' => array('MYR')
   );
@@ -35,7 +35,8 @@ function chip_fpxb2b1_config($params = array())
 
   $formatted_time_zones = array();
   foreach ($list_time_zones as $mtz) {
-    $formatted_time_zones[$mtz] = str_replace("_"," ",$mtz);;
+    $formatted_time_zones[$mtz] = str_replace("_", " ", $mtz);
+    ;
   }
 
   // query available payment method
@@ -46,44 +47,44 @@ function chip_fpxb2b1_config($params = array())
   if (empty($params['secretKey'] || empty($params['brandId']))) {
     // do nothing
   } else {
-    $chip   = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
+    $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
     // $result = $chip->payment_methods('MYR');
 
     // List all payment methods
     $result = [
-        'available_payment_methods' => [
-              "fpx",
-              "fpx_b2b1",
-              "duitnow_qr",
-              "maestro",
-              "mastercard",
-              "visa",
-              "razer_atome",
-              "razer_grabpay",
-              "razer_maybankqr",
-              "razer_shopeepay",
-              "razer_tng"
-            ]
-        ];
+      'available_payment_methods' => [
+        "fpx",
+        "fpx_b2b1",
+        "duitnow_qr",
+        "maestro",
+        "mastercard",
+        "visa",
+        "razer_atome",
+        "razer_grabpay",
+        "razer_maybankqr",
+        "razer_shopeepay",
+        "razer_tng"
+      ]
+    ];
 
-    if ( array_key_exists('available_payment_methods', $result) AND !empty($result['available_payment_methods'])) {
-      foreach( $result['available_payment_methods'] as $apm) {
-        
+    if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
+      foreach ($result['available_payment_methods'] as $apm) {
+
 
         // Set yes to FPX by default
         if (in_array($apm, ['fpx_b2b1'])) {
           $available_payment_method['payment_method_whitelist__' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
-            'Type'         => 'yesno',
-            'Default'      => 'yes',
-            'Description'  => 'Tick to enable ' . ucfirst($apm),
+            'Type' => 'yesno',
+            'Default' => 'yes',
+            'Description' => 'Tick to enable ' . ucfirst($apm),
           );
         } else {
           $available_payment_method['payment_method_whitelist__' . $apm] = array(
             'FriendlyName' => 'Whitelist ' . ucfirst($apm),
-            'Type'         => 'yesno',
+            'Type' => 'yesno',
             // 'Default'      => 'yes',
-            'Description'  => 'Tick to enable ' . ucfirst($apm),
+            'Description' => 'Tick to enable ' . ucfirst($apm),
           );
         }
       }
@@ -94,36 +95,36 @@ function chip_fpxb2b1_config($params = array())
     // Recurring payment methods
     // $result = $chip->payment_recurring_methods('MYR');
     $result = [
-        'available_payment_methods' => [
-              "maestro",
-              "mastercard",
-              "visa"
-            ]
-        ];
+      'available_payment_methods' => [
+        "maestro",
+        "mastercard",
+        "visa"
+      ]
+    ];
 
-    if ( array_key_exists('available_payment_methods', $result) AND !empty($result['available_payment_methods'])) {
+    if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
       $show_force_token_option = true;
     }
   }
 
   $config_params = array(
     'FriendlyName' => array(
-      'Type'  => 'System',
+      'Type' => 'System',
       'Value' => 'FPX B2B (Business Online Banking)',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',
-      'Type'         => 'text',
-      'Size'         => '25',
-      'Default'      => '',
-      'Description'  => 'Enter your Brand ID here',
+      'Type' => 'text',
+      'Size' => '25',
+      'Default' => '',
+      'Description' => 'Enter your Brand ID here',
     ),
     'secretKey' => array(
       'FriendlyName' => 'Secret Key',
-      'Type'         => 'text',
-      'Size'         => '25',
-      'Default'      => '',
-      'Description'  => 'Enter secret key here',
+      'Type' => 'text',
+      'Size' => '25',
+      'Default' => '',
+      'Description' => 'Enter secret key here',
     ),
     'paymentInformation' => array(
       'FriendlyName' => 'Payment Information',
@@ -133,83 +134,83 @@ function chip_fpxb2b1_config($params = array())
     ),
     'dueStrict' => array(
       'FriendlyName' => 'Due Strict',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to enforce due strict payment timeframe',
-      'Default'      => 'on',
+      'Type' => 'yesno',
+      'Description' => 'Tick to enforce due strict payment timeframe',
+      'Default' => 'on',
     ),
     'dueStrictTiming' => array(
       'FriendlyName' => 'Due Strict Timing',
-      'Type'         => 'text',
-      'Size'         => '3',
-      'Default'      => '60', // 60 minutes
-      'Description'  => 'Enter due strict timing. Default 60 for 1 hour.',
+      'Type' => 'text',
+      'Size' => '3',
+      'Default' => '60', // 60 minutes
+      'Description' => 'Enter due strict timing. Default 60 for 1 hour.',
     ),
     'purchaseSendReceipt' => array(
       'FriendlyName' => 'Purchase Send Receipt',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to ask CHIP to send receipt upon successful payment.',
-      'Default'      => 'on',
+      'Type' => 'yesno',
+      'Description' => 'Tick to ask CHIP to send receipt upon successful payment.',
+      'Default' => 'on',
     ),
     'purchaseTimeZone' => array(
       'FriendlyName' => 'Time zone',
-      'Type'         => 'dropdown',
-      'Description'  => 'Time zone setting for receipt page.',
-      'Default'      => 'Asia/Kuala_Lumpur',
-      'Options'      => $formatted_time_zones
+      'Type' => 'dropdown',
+      'Description' => 'Time zone setting for receipt page.',
+      'Default' => 'Asia/Kuala_Lumpur',
+      'Options' => $formatted_time_zones
     ),
     'updateClientInfo' => array(
       'FriendlyName' => 'Update client information',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to update client information on purchase creation.',
-      'Default'      => 'on',
+      'Type' => 'yesno',
+      'Description' => 'Tick to update client information on purchase creation.',
+      'Default' => 'on',
     ),
     'systemUrlHttps' => array(
       'FriendlyName' => 'System URL Mode',
-      'Type'         => 'dropdown',
-      'Description'  => 'Choose https if you are facing issue with payment status update due to http to https redirection',
-      'Options'      => array(
+      'Type' => 'dropdown',
+      'Description' => 'Choose https if you are facing issue with payment status update due to http to https redirection',
+      'Options' => array(
         'default' => 'System Default',
-        'https'   => 'Force HTTPS',
+        'https' => 'Force HTTPS',
       )
     ),
     'additionalCharge' => array(
       'FriendlyName' => 'Additional Charges',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to activate additional charges.',
+      'Type' => 'yesno',
+      'Description' => 'Tick to activate additional charges.',
     ),
     'fixedCharges' => array(
       'FriendlyName' => 'Fixed Charges (cents)',
-      'Type'         => 'text',
-      'Size'         => '3',
-      'Default'      => '0',
-      'Description'  => 'Fixed charges in cents. Default to: 100. This will only be applied when additional charges are activated..',
+      'Type' => 'text',
+      'Size' => '3',
+      'Default' => '0',
+      'Description' => 'Fixed charges in cents. Default to: 100. This will only be applied when additional charges are activated..',
     ),
     'percentageCharges' => array(
       'FriendlyName' => 'Percentage Charges (%)',
-      'Type'         => 'text',
-      'Size'         => '3',
-      'Default'      => '0',
-      'Description'  => 'Percentage charges. Input 100 for 1%. Default to: 0. This will only be applied when additional charges are activated.',
+      'Type' => 'text',
+      'Size' => '3',
+      'Default' => '0',
+      'Description' => 'Percentage charges. Input 100 for 1%. Default to: 0. This will only be applied when additional charges are activated.',
     ),
     'A' => array(
       'FriendlyName' => '',
-      'Description'  => '',
+      'Description' => '',
     ),
   );
 
   if ($show_force_token_option) {
     $config_params['forceTokenization'] = array(
       'FriendlyName' => 'Force Tokenization',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to force tokenization for card payment.',
+      'Type' => 'yesno',
+      'Description' => 'Tick to force tokenization for card payment.',
     );
   }
 
   if ($show_whitelist_option) {
     $config_params['paymentWhitelist'] = array(
       'FriendlyName' => 'Payment Method Whitelisting',
-      'Type'         => 'yesno',
-      'Description'  => 'Tick to enforce payment method whitelisting.',
+      'Type' => 'yesno',
+      'Description' => 'Tick to enforce payment method whitelisting.',
     );
 
     $config_params += $available_payment_method;
@@ -218,26 +219,25 @@ function chip_fpxb2b1_config($params = array())
   return $config_params;
 }
 
-function chip_fpxb2b1_config_validate(array $params) {
-  $chip   = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
+function chip_fpxb2b1_config_validate(array $params)
+{
+  $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
 
-//   Get all payment methods available
-//   $payment_methods = $chip->payment_methods('MYR');
-$payment_methods = [
+  $payment_methods = [
     'available_payment_methods' => [
-          "fpx",
-          "fpx_b2b1",
-          "duitnow_qr",
-          "maestro",
-          "mastercard",
-          "visa",
-          "razer_atome",
-          "razer_grabpay",
-          "razer_maybankqr",
-          "razer_shopeepay",
-          "razer_tng"
-        ]
-    ];
+      "fpx",
+      "fpx_b2b1",
+      "duitnow_qr",
+      "maestro",
+      "mastercard",
+      "visa",
+      "razer_atome",
+      "razer_grabpay",
+      "razer_maybankqr",
+      "razer_shopeepay",
+      "razer_tng"
+    ]
+  ];
 
   $payment_method_configuration_error = false;
 
@@ -270,33 +270,33 @@ $payment_methods = [
 
 function chip_fpxb2b1_link($params)
 {
-  if ( $params['currency'] != 'MYR' ) {
+  if ($params['currency'] != 'MYR') {
     $html = '<p>The invoice was quoted in ' . $params['currency'] . ' and CHIP only accept payment in MYR.';
 
-    if ( ClientArea::isAdminMasqueradingAsClient() ) {
+    if (ClientArea::isAdminMasqueradingAsClient()) {
       $html .= "\nAdministrator can set convert to processing MYR to enable the payment.";
     }
 
     return $html . '</p>';
   }
 
-  $chip   = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
   // $payment_methods = $chip->payment_methods($params['currency']);
   $payment_methods = [
     'available_payment_methods' => [
-          "fpx",
-          "fpx_b2b1",
-          "duitnow_qr",
-          "maestro",
-          "mastercard",
-          "visa",
-          "razer_atome",
-          "razer_grabpay",
-          "razer_maybankqr",
-          "razer_shopeepay",
-          "razer_tng"
-        ]
-    ];
+      "fpx",
+      "fpx_b2b1",
+      "duitnow_qr",
+      "maestro",
+      "mastercard",
+      "visa",
+      "razer_atome",
+      "razer_grabpay",
+      "razer_maybankqr",
+      "razer_shopeepay",
+      "razer_tng"
+    ]
+  ];
 
   $payment_method_configuration_error = false;
 
@@ -325,38 +325,38 @@ function chip_fpxb2b1_link($params)
     return '<p>Payment method whitelisting error. Please disable payment method whitelisting</p>';
   }
 
-  if ( empty($params['secretKey']) OR empty($params['brandId']) ) {
+  if (empty($params['secretKey']) or empty($params['brandId'])) {
     return '<p>Secret Key and Brand ID not set</p>';
   }
 
-  if ( isset($_GET['success']) && !empty(Session::get('chip_fpxb2b1_' . $params['invoiceid'])) ) {
+  if (isset($_GET['success']) && !empty(Session::get('chip_fpxb2b1_' . $params['invoiceid']))) {
     $payment_id = Session::getAndDelete('chip_fpxb2b1_' . $params['invoiceid']);
 
-    if ( \ChipActionFPXB2B1::complete_payment($params, $payment_id) ) {
+    if (\ChipActionFPXB2B1::complete_payment($params, $payment_id)) {
       return '<script>window.location.reload();</script>';
     }
   }
 
   $html = '<p>'
-        . nl2br($params['paymentInformation'])
-        . '<br />'
-        . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-        . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
-        . '</a>'
-        . '<br />'
-        . Lang::trans('invoicerefnum')
-        . ': '
-        . $params['invoicenum']
-        . '</p>';
+    . nl2br($params['paymentInformation'])
+    . '<br />'
+    . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
+    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
+    . '</a>'
+    . '<br />'
+    . Lang::trans('invoicerefnum')
+    . ': '
+    . $params['invoicenum']
+    . '</p>';
 
   return $html;
 }
 
-function chip_fpxb2b1_refund( $params )
+function chip_fpxb2b1_refund($params)
 {
   if ($params['currency'] != 'MYR') {
     return array(
-      'status'  => 'error',
+      'status' => 'error',
       'rawdata' => 'Currency is not MYR!',
       'transid' => $params['transid'],
     );
@@ -364,40 +364,40 @@ function chip_fpxb2b1_refund( $params )
 
   if ($params['basecurrency'] != 'MYR') {
     return array(
-      'status'  => 'error',
+      'status' => 'error',
       'rawdata' => 'Refund for Purchase ID ' . $params['transid'] . ' needs to be done through CHIP Dashboard.',
       'transid' => $params['transid'],
     );
   }
 
-  $chip   = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
-  $result = $chip->refund_payment($params['transid'], array( 'amount' => round($params['amount']  * 100)) );
+  $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
+  $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
 
-  if ( !array_key_exists( 'id', $result ) OR $result['status'] != 'success') {
+  if (!array_key_exists('id', $result) or $result['status'] != 'success') {
     return array(
-      'status'  => 'error',
+      'status' => 'error',
       'rawdata' => json_encode($result),
       'transid' => $params['transid'],
     );
   }
 
   return array(
-    'status'  => 'success',
+    'status' => 'success',
     'rawdata' => json_encode($result),
     'transid' => $result['id'],
-    'fees'    => $result['payment']['fee_amount'] / 100,
+    'fees' => $result['payment']['fee_amount'] / 100,
   );
 }
 
-function chip_fpxb2b1_account_balance( $params )
+function chip_fpxb2b1_account_balance($params)
 {
   $balanceInfo = [];
 
   // Connect to gateway to retrieve balance information.
-  $chip        = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
   $balanceData = $chip->account_balance();
 
-  foreach( $balanceData as $currency => $value ) {
+  foreach ($balanceData as $currency => $value) {
     $balanceInfo[] = Balance::factory(
       ($value['balance'] / 100),
       $currency
@@ -405,7 +405,7 @@ function chip_fpxb2b1_account_balance( $params )
   }
 
   //... splat operator. it will explode the array and send it as individual variable
-  return BalanceCollection::factoryFromItems(...$balanceInfo );
+  return BalanceCollection::factoryFromItems(...$balanceInfo);
 }
 
 function chip_fpxb2b1_TransactionInformation(array $params = []): Information
@@ -419,29 +419,29 @@ function chip_fpxb2b1_TransactionInformation(array $params = []): Information
   }
 
   $payment_fee = 0;
-  foreach($payment['transaction_data']['attempts'] as $attempt) {
-    if (in_array($attempt['type'], ['execute', 'recurring_execute']) AND $attempt['successful'] AND empty($attempt['error'])) {
+  foreach ($payment['transaction_data']['attempts'] as $attempt) {
+    if (in_array($attempt['type'], ['execute', 'recurring_execute']) and $attempt['successful'] and empty($attempt['error'])) {
       $payment_fee = $attempt['fee_amount'];
       break;
     }
   }
 
   return $information
-        ->setTransactionId($payment['id'])
-        ->setAmount($payment['payment']['amount'] / 100)
-        ->setCurrency($payment['payment']['currency'])
-        ->setType($payment['type'])
-        ->setAvailableOn(Carbon::parse($payment['paid_on']))
-        ->setCreated(Carbon::parse($payment['created_on']))
-        ->setDescription($payment['payment']['description'])
-        ->setFee($payment_fee / 100)
-        ->setStatus($payment['status']);
+    ->setTransactionId($payment['id'])
+    ->setAmount($payment['payment']['amount'] / 100)
+    ->setCurrency($payment['payment']['currency'])
+    ->setType($payment['type'])
+    ->setAvailableOn(Carbon::parse($payment['paid_on']))
+    ->setCreated(Carbon::parse($payment['created_on']))
+    ->setDescription($payment['payment']['description'])
+    ->setFee($payment_fee / 100)
+    ->setStatus($payment['status']);
 }
 
 // $params = https://pastebin.com/vz16pSJV
 function chip_fpxb2b1_capture($params)
 {
-  if ( $params['currency'] != 'MYR' ) {
+  if ($params['currency'] != 'MYR') {
     return array("status" => "declined", 'declinereason' => 'Unsupported currency');
   }
 
@@ -458,21 +458,21 @@ function chip_fpxb2b1_capture($params)
 
   // If additional charge is on, then
   if ($params['additionalCharge']) {
-    
+
     $total_charge = 0;
 
     // Check if both are set 
 
     // Check if fixed or percentage
-    if ( $params['fixedCharges'] > 0 ) {
+    if ($params['fixedCharges'] > 0) {
       // Add amount with fixed charge (RM1.00 = 100)
       $charge = ($params['fixedCharges'] / 100);
       $total_charge = $total_charge + $charge;
     }
 
-    if ( $params['percentageCharges'] > 0 ) {
+    if ($params['percentageCharges'] > 0) {
       // 1% = 100
-      $charge = $params['amount'] * ( $params['percentageCharges'] / 100 ) / 100;
+      $charge = $params['amount'] * ($params['percentageCharges'] / 100) / 100;
       $total_charge = $total_charge + $charge;
     }
 
@@ -481,25 +481,27 @@ function chip_fpxb2b1_capture($params)
 
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip_fpxb2b1.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent'    => 'WHMCS: 1.4.0',
-    'reference'        => $params['invoiceid'],
-    'client_id'        => $client['id'],
-    'platform'         => 'whmcs',
-    'send_receipt'     => $params['purchaseSendReceipt'] == 'on',
-    'due'              => time() + (abs( (int)$params['dueStrictTiming'] ) * 60),
-    'brand_id'         => $params['brandId'],
-    'purchase'         => array(
-      'timezone'   => $params['purchaseTimeZone'],
-      'currency'   => $params['currency'],
+    'creator_agent' => 'WHMCS: 1.4.0',
+    'reference' => $params['invoiceid'],
+    'client_id' => $client['id'],
+    'platform' => 'whmcs',
+    'send_receipt' => $params['purchaseSendReceipt'] == 'on',
+    'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
+    'brand_id' => $params['brandId'],
+    'purchase' => array(
+      'timezone' => $params['purchaseTimeZone'],
+      'currency' => $params['currency'],
       'due_strict' => $params['dueStrict'] == 'on',
-      'products'   => array([
-        'name'     => substr($params['description'], 0, 256),
-        'price'    => round($params['amount'] * 100),
-      ]),
+      'products' => array(
+        [
+          'name' => substr($params['description'], 0, 256),
+          'price' => round($params['amount'] * 100),
+        ]
+      ),
     ),
   );
 
-  $create_payment = $chip->create_payment( $purchase_params );
+  $create_payment = $chip->create_payment($purchase_params);
 
   $charge_payment = $chip->charge_payment($create_payment['id'], array('recurring_token' => $params["gatewayid"]));
 
@@ -509,9 +511,9 @@ function chip_fpxb2b1_capture($params)
   Capsule::select("SELECT GET_LOCK('chip_fpxb2b1_payment_$payment_id', 10);");
 
   $account = Capsule::table('tblaccounts')
-      ->where('transid', $payment_id)
-      ->take(1)
-      ->first();
+    ->where('transid', $payment_id)
+    ->take(1)
+    ->first();
 
   if ($account) {
     return 'success';
@@ -534,11 +536,13 @@ function chip_fpxb2b1_capture($params)
  */
 // logActivity('Message goes here', 0);
 
-function chip_fpxb2b1_nolocalcc() {
+function chip_fpxb2b1_nolocalcc()
+{
   // this method must exists to hide card credit input displaying in checkout page
 }
 
-function chip_fpxb2b1_storeremote($params) {
+function chip_fpxb2b1_storeremote($params)
+{
   $action = $params['action'];
   $token = $params['gatewayid'];
 
@@ -546,7 +550,7 @@ function chip_fpxb2b1_storeremote($params) {
     case 'delete':
       $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], '');
       $chip->delete_token($token);
-    break;
+      break;
   }
 
   return [
@@ -554,10 +558,12 @@ function chip_fpxb2b1_storeremote($params) {
   ];
 }
 
-function chip_fpxb2b1_adminstatusmsg($params) {
+function chip_fpxb2b1_adminstatusmsg($params)
+{
   return false;
 }
 
-function chip_fpxb2b1_deactivate() {
+function chip_fpxb2b1_deactivate()
+{
   // remove database table. but make it remains commented
 }

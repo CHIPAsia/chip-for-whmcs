@@ -9,19 +9,21 @@ use WHMCS\Carbon;
 use WHMCS\Exception\Module\NotServicable;
 use WHMCS\Config\Setting as WHMCSSetting;
 
-class ChipActionFPX {
-  public static function complete_payment( $params, $payment ) {
+class ChipActionFPX
+{
+  public static function complete_payment($params, $payment)
+  {
     if (\is_array($payment)) { // success callback
       $payment_id = $payment['id'];
     } elseif (\is_string($payment)) { // success redirect
-      $chip       = \ChipAPIFPX::get_instance($params['secretKey'], $params['brandId']);
+      $chip = \ChipAPIFPX::get_instance($params['secretKey'], $params['brandId']);
       $payment_id = $payment;
-      $payment    = $chip->get_payment($payment);
+      $payment = $chip->get_payment($payment);
     } else {
       return false;
     }
 
-    if ( $payment['status'] != 'paid' ) {
+    if ($payment['status'] != 'paid') {
       return false;
     }
 
@@ -66,7 +68,7 @@ class ChipActionFPX {
       throw new NotServicable("Invoice Amount Invalid");
     }
 
-    $send_credit_card_email = isset($_GET['capturecallback']) AND $_GET['capturecallback'] == 'true' AND $payment['recurring_token'] AND isset($_SERVER['HTTP_X_SIGNATURE']);
+    $send_credit_card_email = isset($_GET['capturecallback']) and $_GET['capturecallback'] == 'true' and $payment['recurring_token'] and isset($_SERVER['HTTP_X_SIGNATURE']);
 
     $invoice_payment_status = \addInvoicePayment(
       $params['invoiceid'],
@@ -79,7 +81,7 @@ class ChipActionFPX {
 
     Capsule::select("SELECT RELEASE_LOCK('chip_payment_$payment_id');");
 
-    \logTransaction( $params['name'], $payment, ucfirst($payment['status']), array('history_id' => $history->id) );
+    \logTransaction($params['name'], $payment, ucfirst($payment['status']), array('history_id' => $history->id));
 
     if ($payment['is_recurring_token']) {
       $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
@@ -90,7 +92,7 @@ class ChipActionFPX {
       $masked_pan = $payment['transaction_data']['extra']['masked_pan'];
 
       $payMethod_payment->setLastFour(substr($masked_pan, -4));
-      $expiry_date = sprintf("%02d", $payment['transaction_data']['extra']['expiry_month']).'/'.$payment['transaction_data']['extra']['expiry_year'];
+      $expiry_date = sprintf("%02d", $payment['transaction_data']['extra']['expiry_month']) . '/' . $payment['transaction_data']['extra']['expiry_year'];
       $payMethod_payment->setCardType(ucfirst($payment['transaction_data']['extra']['card_brand']));
       $payMethod_payment->setExpiryDate(Carbon::createFromCcInput($expiry_date));
       $payMethod_payment->setRemoteToken($payment['id']);
@@ -119,22 +121,24 @@ class ChipActionFPX {
     return true;
   }
 
-  public static function retrieve_public_key($params) {
+  public static function retrieve_public_key($params)
+  {
     $ten_secret_key = substr($params['secretKey'], 0, 10);
 
-    if ( $public_key = WHMCSSetting::getValue("CHIP_PUBLIC_KEY_" . $ten_secret_key) ) {
+    if ($public_key = WHMCSSetting::getValue("CHIP_PUBLIC_KEY_" . $ten_secret_key)) {
       return $public_key;
     }
 
-    $chip       = \ChipAPIFPX::get_instance($params['secretKey'], $params['brandId']);
-    $public_key = \str_replace( '\n', "\n", $chip->public_key() );
+    $chip = \ChipAPIFPX::get_instance($params['secretKey'], $params['brandId']);
+    $public_key = \str_replace('\n', "\n", $chip->public_key());
 
-    WHMCSSetting::setValue( "CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key );
+    WHMCSSetting::setValue("CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key);
 
     return $public_key;
   }
 
-  public static function clean_up_public_key() {
+  public static function clean_up_public_key()
+  {
     require __DIR__ . '/../../../init.php';
     WHMCSSetting::where('setting', 'LIKE', "CHIP_PUBLIC_KEY_%")->delete();
 
