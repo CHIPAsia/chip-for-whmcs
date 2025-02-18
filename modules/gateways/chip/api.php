@@ -38,7 +38,7 @@ class ChipAPI
   {
     return $this->call(
       'GET',
-      "/payment_methods/?brand_id={$this->brand_id}&currency={$currency}&amount=200"
+      "/payment_methods/?brand_id={$this->brand_id}&currency={$currency}&amount=1000"
     );
   }
 

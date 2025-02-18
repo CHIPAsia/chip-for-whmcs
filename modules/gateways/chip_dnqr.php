@@ -215,36 +215,6 @@ function chip_dnqr_config($params = array())
 
 function chip_dnqr_config_validate(array $params)
 {
-  $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
-
-  $payment_methods = $chip->payment_methods('MYR');
-
-  $payment_method_configuration_error = false;
-
-  if ($params['paymentWhitelist'] == 'on') {
-    $payment_method_configuration_error = true;
-    $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
-
-    $configured_payment_methods = array();
-    foreach ($result as $key) {
-      if ($params[$key] == 'on') {
-        $key_array = explode('__', $key);
-        $configured_payment_methods[] = end($key_array);
-      }
-    }
-
-    foreach ($configured_payment_methods as $cpm) {
-      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
-        $payment_method_configuration_error = false;
-        break;
-      }
-    }
-  }
-
-  if ($payment_method_configuration_error) {
-    throw new NotServicable("Invalid settings for payment method whitelisting.");
-  }
 }
 
 function chip_dnqr_link($params)
@@ -257,36 +227,6 @@ function chip_dnqr_link($params)
     }
 
     return $html . '</p>';
-  }
-
-  $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
-  $payment_methods = $chip->payment_methods($params['currency']);
-
-  $payment_method_configuration_error = false;
-
-  if ($params['paymentWhitelist'] == 'on') {
-    $payment_method_configuration_error = true;
-    $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
-
-    $configured_payment_methods = array();
-    foreach ($result as $key) {
-      if ($params[$key] == 'on') {
-        $key_array = explode('__', $key);
-        $configured_payment_methods[] = end($key_array);
-      }
-    }
-
-    foreach ($configured_payment_methods as $cpm) {
-      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
-        $payment_method_configuration_error = false;
-        break;
-      }
-    }
-  }
-
-  if ($payment_method_configuration_error) {
-    return '<p>Payment method whitelisting error. Please disable payment method whitelisting</p>';
   }
 
   if (empty($params['secretKey']) or empty($params['brandId'])) {
@@ -305,7 +245,7 @@ function chip_dnqr_link($params)
     . nl2br($params['paymentInformation'])
     . '<br />'
     . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_dnqr/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_dnqr/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
+    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_dnqr/duitnow_only.svg" title="' . Lang::trans('Pay with Duitnow QR') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')

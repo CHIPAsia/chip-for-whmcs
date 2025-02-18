@@ -112,7 +112,7 @@ function chip_fpxb2b1_config($params = array())
   $config_params = array(
     'FriendlyName' => array(
       'Type' => 'System',
-      'Value' => 'FPX B2B (Business Online Banking)',
+      'Value' => 'FPX B2B (Corporate Online Banking)',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',
@@ -223,53 +223,6 @@ function chip_fpxb2b1_config($params = array())
 
 function chip_fpxb2b1_config_validate(array $params)
 {
-  $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
-
-  $payment_methods = [
-    'available_payment_methods' => [
-      'fpx',
-      'fpx_b2b1',
-      'duitnow_qr',
-      'maestro',
-      'mastercard',
-      'visa',
-      'razer_atome',
-      'razer_grabpay',
-      'razer_maybankqr',
-      'razer_shopeepay',
-      'razer_tng',
-      'mpgs_apple_pay',
-      'mpgs_google_pay'
-    ]
-  ];
-
-  $payment_method_configuration_error = false;
-
-  if ($params['paymentWhitelist'] == 'on') {
-    $payment_method_configuration_error = true;
-    $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
-
-    $configured_payment_methods = array();
-    foreach ($result as $key) {
-      if ($params[$key] == 'on') {
-        $key_array = explode('__', $key);
-        $configured_payment_methods[] = end($key_array);
-      }
-    }
-
-    // Check if configured payment methods available
-    foreach ($configured_payment_methods as $cpm) {
-      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
-        $payment_method_configuration_error = false;
-        break;
-      }
-    }
-  }
-
-  if ($payment_method_configuration_error) {
-    throw new NotServicable("Invalid settings for payment method whitelisting.");
-  }
 }
 
 function chip_fpxb2b1_link($params)
@@ -282,53 +235,6 @@ function chip_fpxb2b1_link($params)
     }
 
     return $html . '</p>';
-  }
-
-  $chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
-  // $payment_methods = $chip->payment_methods($params['currency']);
-  $payment_methods = [
-    'available_payment_methods' => [
-      'fpx',
-      'fpx_b2b1',
-      'duitnow_qr',
-      'maestro',
-      'mastercard',
-      'visa',
-      'razer_atome',
-      'razer_grabpay',
-      'razer_maybankqr',
-      'razer_shopeepay',
-      'razer_tng',
-      'mpgs_apple_pay',
-      'mpgs_google_pay'
-    ]
-  ];
-
-  $payment_method_configuration_error = false;
-
-  if ($params['paymentWhitelist'] == 'on') {
-    $payment_method_configuration_error = true;
-    $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
-
-    $configured_payment_methods = array();
-    foreach ($result as $key) {
-      if ($params[$key] == 'on') {
-        $key_array = explode('__', $key);
-        $configured_payment_methods[] = end($key_array);
-      }
-    }
-
-    foreach ($configured_payment_methods as $cpm) {
-      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
-        $payment_method_configuration_error = false;
-        break;
-      }
-    }
-  }
-
-  if ($payment_method_configuration_error) {
-    return '<p>Payment method whitelisting error. Please disable payment method whitelisting</p>';
   }
 
   if (empty($params['secretKey']) or empty($params['brandId'])) {
@@ -347,7 +253,7 @@ function chip_fpxb2b1_link($params)
     . nl2br($params['paymentInformation'])
     . '<br />'
     . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
+    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/fpx_only.png" title="' . Lang::trans('Pay with FPX B2B (Corporate Online Banking)') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')
