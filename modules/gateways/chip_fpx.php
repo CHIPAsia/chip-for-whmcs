@@ -174,25 +174,6 @@ function chip_fpx_config($params = array())
         'https' => 'Force HTTPS',
       )
     ),
-    'additionalCharge' => array(
-      'FriendlyName' => 'Additional Charges',
-      'Type' => 'yesno',
-      'Description' => 'Tick to activate additional charges.',
-    ),
-    'fixedCharges' => array(
-      'FriendlyName' => 'Fixed Charges (cents)',
-      'Type' => 'text',
-      'Size' => '3',
-      'Default' => '0',
-      'Description' => 'Fixed charges in cents. Default to: 100. This will only be applied when additional charges are activated..',
-    ),
-    'percentageCharges' => array(
-      'FriendlyName' => 'Percentage Charges (%)',
-      'Type' => 'text',
-      'Size' => '3',
-      'Default' => '0',
-      'Description' => 'Percentage charges. Input 100 for 1%. Default to: 0. This will only be applied when additional charges are activated.',
-    ),
     'A' => array(
       'FriendlyName' => '',
       'Description' => '',
@@ -367,29 +348,6 @@ function chip_fpx_capture($params)
 
   if ($params['systemUrlHttps'] == 'https') {
     $system_url = preg_replace("/^http:/i", "https:", $system_url);
-  }
-
-  // If additional charge is on, then
-  if ($params['additionalCharge']) {
-
-    $total_charge = 0;
-
-    // Check if both are set 
-
-    // Check if fixed or percentage
-    if ($params['fixedCharges'] > 0) {
-      // Add amount with fixed charge (RM1.00 = 100)
-      $charge = ($params['fixedCharges'] / 100);
-      $total_charge = $total_charge + $charge;
-    }
-
-    if ($params['percentageCharges'] > 0) {
-      // 1% = 100
-      $charge = $params['amount'] * ($params['percentageCharges'] / 100) / 100;
-      $total_charge = $total_charge + $charge;
-    }
-
-    $params['amount'] = $params['amount'] + $total_charge;
   }
 
   $purchase_params = array(
