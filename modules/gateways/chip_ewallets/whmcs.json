@@ -1,0 +1,36 @@
+{
+    "schema": "1.0",
+    "type": "whmcs-gateways",
+    "name": "chip_ewallets",
+    "license": "MIT",
+    "category": "payments",
+    "description": {
+        "name": "CHIP E-Wallet",
+        "tagline": "CHIP - E-Wallet",
+        "long": "CHIP is a comprehensive Digital Finance Platform specifically designed to support and empower Micro, Small and Medium Enterprises (MSMEs). We provide a suite of solutions encompassing payment collection, expense management, risk mitigation, and treasury management. \n\nOur aim is to help businesses streamline their financial processes, reduce operational complexity, and drive growth.\n\nWith CHIP, you gain a financial partner committed to simplifying, digitizing, and enhancing your financial operations for ultimate success.",
+        "features": [
+            "Seamless payment experience as payment processing are made in real-time",
+            "Perform refund directly from WHMCS administration",
+            "One-time payment from Invoice",
+            "Save card for future payment",
+            "Tokenization payment to automatically capture payment on-demand",
+            "Option to force payment tokenization",
+            "Whitelist payment method"
+        ]
+    },
+    "logo": {
+        "filename": "ewallet.png"
+    },
+    "support": {
+        "homepage": "https:\/\/www.chip-in.asia\/",  
+        "email": "support@chip-in.asia",
+        "support_url": "https:\/\/www.chip-in.asia\/",
+        "docs_url": "https:\/\/docs.chip-in.asia\/"
+    },
+    "authors": [
+        {
+            "name": "CHIP IN SDN BHD",
+            "homepage": "https:\/\/www.chip-in.asia\/"
+        }
+    ]
+  }

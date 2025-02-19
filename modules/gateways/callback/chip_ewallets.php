@@ -1,7 +1,7 @@
 <?php
 
-require_once __DIR__ . '/../chip/api.php';
-require_once __DIR__ . '/../chip/action.php';
+require_once __DIR__ . '/../chip_ewallets/api.php';
+require_once __DIR__ . '/../chip_ewallets/action.php';
 require_once __DIR__ . '/../../../init.php';
 App::load_function('gateway');
 App::load_function('invoice');
@@ -22,7 +22,7 @@ if (empty($get_invoice_id = intval($_GET['invoiceid']))) {
   die('invoiceid parameter is empty');
 }
 
-$gatewayParams = getGatewayVariables('chip');
+$gatewayParams = getGatewayVariables('chip_ewallets');
 
 if (!$gatewayParams['type']) {
   die('Module Not Activated');
@@ -31,7 +31,7 @@ if (!$gatewayParams['type']) {
 $invoice = new WHMCS\Invoice($get_invoice_id);
 $params = $invoice->getGatewayInvoiceParams();
 
-if (\openssl_verify($content, \base64_decode($_SERVER['HTTP_X_SIGNATURE']), \ChipAction::retrieve_public_key($params), 'sha256WithRSAEncryption') != 1) {
+if (\openssl_verify($content, \base64_decode($_SERVER['HTTP_X_SIGNATURE']), \ChipActionEwallets::retrieve_public_key($params), 'sha256WithRSAEncryption') != 1) {
   \header('Forbidden', true, 403);
   die('Invalid X Signature');
 }
@@ -42,6 +42,6 @@ if ($payment['status'] != 'paid') {
   die('Status is not paid');
 }
 
-\ChipAction::complete_payment($params, $payment);
+\ChipActionEwallets::complete_payment($params, $payment);
 
 echo 'Done';

@@ -1,6 +1,6 @@
 <?php
 
-class ChipAPI
+class ChipAPIFPXB2B1
 {
   private static $_instance;
   private $require_empty_string_encoding = false;

@@ -1,6 +1,6 @@
 <?php
 
-class ChipAPI
+class ChipAPIDNQR
 {
   private static $_instance;
   private $require_empty_string_encoding = false;

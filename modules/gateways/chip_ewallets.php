@@ -16,20 +16,20 @@ if (!defined("WHMCS")) {
   die("This file cannot be accessed directly");
 }
 
-require_once __DIR__ . '/chip/api.php';
-require_once __DIR__ . '/chip/action.php';
+require_once __DIR__ . '/chip_ewallets/api.php';
+require_once __DIR__ . '/chip_ewallets/action.php';
 
-function chip_MetaData()
+function chip_ewallets_MetaData()
 {
   return array(
-    'DisplayName' => 'CHIP',
+    'DisplayName' => 'CHIP E-Wallets',
     'APIVersion' => '1.1',
     // Commented to allow Convert to for Processing
     // 'supportedCurrencies' => array('MYR')
   );
 }
 
-function chip_config($params = array())
+function chip_ewallets_config($params = array())
 {
   $list_time_zones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
 
@@ -47,22 +47,61 @@ function chip_config($params = array())
   if (empty($params['secretKey'] || empty($params['brandId']))) {
     // do nothing
   } else {
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-    $result = $chip->payment_methods('MYR');
+    $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
+    // $result = $chip->payment_methods('MYR');
+
+    // List all payment methods
+    $result = [
+      'available_payment_methods' => [
+        'fpx',
+        'fpx_b2b1',
+        'duitnow_qr',
+        'maestro',
+        'mastercard',
+        'visa',
+        'razer_atome',
+        'razer_grabpay',
+        'razer_maybankqr',
+        'razer_shopeepay',
+        'razer_tng',
+        'mpgs_apple_pay',
+        'mpgs_google_pay'
+      ]
+    ];
 
     if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
       foreach ($result['available_payment_methods'] as $apm) {
-        $available_payment_method['payment_method_whitelist__' . $apm] = array(
-          'FriendlyName' => 'Whitelist ' . ucfirst($apm),
-          'Type' => 'yesno',
-          'Description' => 'Tick to enable ' . ucfirst($apm),
-        );
+
+
+        // Set yes to E-wallets by default
+        if (in_array($apm, ['razer_grabpay', 'razer_maybankqr', 'razer_shopeepay', 'razer_tng'])) {
+          $available_payment_method['payment_method_whitelist__' . $apm] = array(
+            'FriendlyName' => 'Whitelist ' . ucfirst($apm),
+            'Type' => 'yesno',
+            'Default' => 'yes',
+            'Description' => 'Tick to enable ' . ucfirst($apm),
+          );
+        } else {
+          $available_payment_method['payment_method_whitelist__' . $apm] = array(
+            'FriendlyName' => 'Whitelist ' . ucfirst($apm),
+            'Type' => 'yesno',
+            'Description' => 'Tick to enable ' . ucfirst($apm),
+          );
+        }
       }
 
       $show_whitelist_option = true;
     }
 
-    $result = $chip->payment_recurring_methods('MYR');
+    // Recurring payment methods
+    // $result = $chip->payment_recurring_methods('MYR');
+    $result = [
+      'available_payment_methods' => [
+        "maestro",
+        "mastercard",
+        "visa"
+      ]
+    ];
 
     if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
       $show_force_token_option = true;
@@ -72,7 +111,7 @@ function chip_config($params = array())
   $config_params = array(
     'FriendlyName' => array(
       'Type' => 'System',
-      'Value' => 'CHIP',
+      'Value' => 'E-Wallet',
     ),
     'brandId' => array(
       'FriendlyName' => 'Brand ID',
@@ -154,6 +193,7 @@ function chip_config($params = array())
       'FriendlyName' => 'Payment Method Whitelisting',
       'Type' => 'yesno',
       'Description' => 'Tick to enforce payment method whitelisting.',
+      'Default' => 'yes',
     );
 
     $config_params += $available_payment_method;
@@ -162,41 +202,11 @@ function chip_config($params = array())
   return $config_params;
 }
 
-function chip_config_validate(array $params)
+function chip_ewallets_config_validate(array $params)
 {
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-
-  $payment_methods = $chip->payment_methods('MYR');
-
-  $payment_method_configuration_error = false;
-
-  if ($params['paymentWhitelist'] == 'on') {
-    $payment_method_configuration_error = true;
-    $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
-
-    $configured_payment_methods = array();
-    foreach ($result as $key) {
-      if ($params[$key] == 'on') {
-        $key_array = explode('__', $key);
-        $configured_payment_methods[] = end($key_array);
-      }
-    }
-
-    foreach ($configured_payment_methods as $cpm) {
-      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
-        $payment_method_configuration_error = false;
-        break;
-      }
-    }
-  }
-
-  if ($payment_method_configuration_error) {
-    throw new NotServicable("Invalid settings for payment method whitelisting.");
-  }
 }
 
-function chip_link($params)
+function chip_ewallets_link($params)
 {
   if ($params['currency'] != 'MYR') {
     $html = '<p>The invoice was quoted in ' . $params['currency'] . ' and CHIP only accept payment in MYR.';
@@ -208,44 +218,14 @@ function chip_link($params)
     return $html . '</p>';
   }
 
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $payment_methods = $chip->payment_methods($params['currency']);
-
-  $payment_method_configuration_error = false;
-
-  if ($params['paymentWhitelist'] == 'on') {
-    $payment_method_configuration_error = true;
-    $keys = array_keys($params);
-    $result = preg_grep('/payment_method_whitelist__.*/', $keys);
-
-    $configured_payment_methods = array();
-    foreach ($result as $key) {
-      if ($params[$key] == 'on') {
-        $key_array = explode('__', $key);
-        $configured_payment_methods[] = end($key_array);
-      }
-    }
-
-    foreach ($configured_payment_methods as $cpm) {
-      if (in_array($cpm, $payment_methods['available_payment_methods'])) {
-        $payment_method_configuration_error = false;
-        break;
-      }
-    }
-  }
-
-  if ($payment_method_configuration_error) {
-    return '<p>Payment method whitelisting error. Please disable payment method whitelisting</p>';
-  }
-
   if (empty($params['secretKey']) or empty($params['brandId'])) {
     return '<p>Secret Key and Brand ID not set</p>';
   }
 
-  if (isset($_GET['success']) && !empty(Session::get('chip_' . $params['invoiceid']))) {
-    $payment_id = Session::getAndDelete('chip_' . $params['invoiceid']);
+  if (isset($_GET['success']) && !empty(Session::get('chip_ewallets_' . $params['invoiceid']))) {
+    $payment_id = Session::getAndDelete('chip_ewallets_' . $params['invoiceid']);
 
-    if (\ChipAction::complete_payment($params, $payment_id)) {
+    if (\ChipActionEwallets::complete_payment($params, $payment_id)) {
       return '<script>window.location.reload();</script>';
     }
   }
@@ -253,8 +233,8 @@ function chip_link($params)
   $html = '<p>'
     . nl2br($params['paymentInformation'])
     . '<br />'
-    . '<a href="' . $params['systemurl'] . 'modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
+    . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_ewallets/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
+    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_ewallets/paywithewallet.png" title="' . Lang::trans('Pay with E-Wallet') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')
@@ -265,7 +245,7 @@ function chip_link($params)
   return $html;
 }
 
-function chip_refund($params)
+function chip_ewallets_refund($params)
 {
   if ($params['currency'] != 'MYR') {
     return array(
@@ -283,7 +263,7 @@ function chip_refund($params)
     );
   }
 
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
   $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
 
   if (!array_key_exists('id', $result) or $result['status'] != 'success') {
@@ -302,12 +282,12 @@ function chip_refund($params)
   );
 }
 
-function chip_account_balance($params)
+function chip_ewallets_account_balance($params)
 {
   $balanceInfo = [];
 
   // Connect to gateway to retrieve balance information.
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
   $balanceData = $chip->account_balance();
 
   foreach ($balanceData as $currency => $value) {
@@ -321,9 +301,9 @@ function chip_account_balance($params)
   return BalanceCollection::factoryFromItems(...$balanceInfo);
 }
 
-function chip_TransactionInformation(array $params = []): Information
+function chip_ewallets_TransactionInformation(array $params = []): Information
 {
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
   $payment = $chip->get_payment($params['transactionId']);
   $information = new Information();
 
@@ -352,13 +332,13 @@ function chip_TransactionInformation(array $params = []): Information
 }
 
 // $params = https://pastebin.com/vz16pSJV
-function chip_capture($params)
+function chip_ewallets_capture($params)
 {
   if ($params['currency'] != 'MYR') {
     return array("status" => "declined", 'declinereason' => 'Unsupported currency');
   }
 
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
 
   $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
   $client = $get_client['results'][0];
@@ -370,7 +350,7 @@ function chip_capture($params)
   }
 
   $purchase_params = array(
-    'success_callback' => $system_url . 'modules/gateways/callback/chip.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
+    'success_callback' => $system_url . 'modules/gateways/callback/chip_ewallets.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
     'creator_agent' => 'WHMCS: 1.4.0',
     'reference' => $params['invoiceid'],
     'client_id' => $client['id'],
@@ -398,7 +378,7 @@ function chip_capture($params)
   $payment_id = $create_payment['id'];
 
   // this to prevent from callback being run in 10 seconds from now
-  Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 10);");
+  Capsule::select("SELECT GET_LOCK('chip_ewallets_payment_$payment_id', 10);");
 
   $account = Capsule::table('tblaccounts')
     ->where('transid', $payment_id)
@@ -426,19 +406,19 @@ function chip_capture($params)
  */
 // logActivity('Message goes here', 0);
 
-function chip_nolocalcc()
+function chip_ewallets_nolocalcc()
 {
   // this method must exists to hide card credit input displaying in checkout page
 }
 
-function chip_storeremote($params)
+function chip_ewallets_storeremote($params)
 {
   $action = $params['action'];
   $token = $params['gatewayid'];
 
   switch ($action) {
     case 'delete':
-      $chip = \ChipAPI::get_instance($params['secretKey'], '');
+      $chip = \ChipAPIEwallets::get_instance($params['secretKey'], '');
       $chip->delete_token($token);
       break;
   }
@@ -448,12 +428,12 @@ function chip_storeremote($params)
   ];
 }
 
-function chip_adminstatusmsg($params)
+function chip_ewallets_adminstatusmsg($params)
 {
   return false;
 }
 
-function chip_deactivate()
+function chip_ewallets_deactivate()
 {
   // remove database table. but make it remains commented
 }

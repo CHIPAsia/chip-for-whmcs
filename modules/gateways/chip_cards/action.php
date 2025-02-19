@@ -9,14 +9,14 @@ use WHMCS\Carbon;
 use WHMCS\Exception\Module\NotServicable;
 use WHMCS\Config\Setting as WHMCSSetting;
 
-class ChipAction
+class ChipActionCards
 {
   public static function complete_payment($params, $payment)
   {
     if (\is_array($payment)) { // success callback
       $payment_id = $payment['id'];
     } elseif (\is_string($payment)) { // success redirect
-      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+      $chip = \ChipAPICards::get_instance($params['secretKey'], $params['brandId']);
       $payment_id = $payment;
       $payment = $chip->get_payment($payment);
     } else {
@@ -85,7 +85,7 @@ class ChipAction
 
     if ($payment['is_recurring_token']) {
       $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
-      $gateway = Gateway::factory('chip');
+      $gateway = Gateway::factory('chip_cards');
       $payMethod->description = $payment['transaction_data']['extra']['cardholder_name'];
       $payMethod->setGateway($gateway);
       $payMethod_payment = $payMethod->payment;
@@ -106,7 +106,7 @@ class ChipAction
 
     if ($send_credit_card_email) {
       $emailTemplate = "Credit Card Payment Confirmation";
-      $gateway = WHMCS\Module\Gateway::factory('chip');
+      $gateway = WHMCS\Module\Gateway::factory('chip_cards');
       if ($customEmailTemplate = $gateway->getMetaDataValue("successEmail")) {
         $customEmailTemplate = WHMCS\Mail\Template::where("name", "=", $customEmailTemplate)->first();
         if ($customEmailTemplate) {
@@ -129,7 +129,7 @@ class ChipAction
       return $public_key;
     }
 
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+    $chip = \ChipAPICards::get_instance($params['secretKey'], $params['brandId']);
     $public_key = \str_replace('\n', "\n", $chip->public_key());
 
     WHMCSSetting::setValue("CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key);
@@ -147,5 +147,5 @@ class ChipAction
 }
 
 if (isset($_GET['clean_up_public_key'])) {
-  ChipAction::clean_up_public_key();
+  ChipActionCards::clean_up_public_key();
 }

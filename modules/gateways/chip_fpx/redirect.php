@@ -24,7 +24,6 @@ if (empty($get_invoice_id)) {
 $invoice = new Invoice($get_invoice_id);
 $params = $invoice->getGatewayInvoiceParams();
 
-// Note: https://classdocs.whmcs.com/8.0/WHMCS/Authentication/CurrentUser.html
 $currentUser = new CurrentUser;
 $user = $currentUser->user();
 $admin = $currentUser->isAuthenticatedAdmin();
@@ -32,7 +31,6 @@ $admin = $currentUser->isAuthenticatedAdmin();
 if ($admin) {
   // The request is made by admin. No further check required.
 } elseif ($user) {
-  // Take client() because it means to get active client for management.
   $current_user_client_id = $currentUser->client()->id;
   $param_client_id = $params['clientdetails']['client_id'];
 
@@ -46,7 +44,7 @@ if ($admin) {
   exit;
 }
 
-if ($params['paymentmethod'] != 'chip') {
+if ($params['paymentmethod'] != 'chip_fpx') {
   header('Location: ' . $params['returnurl']);
 }
 
@@ -60,7 +58,7 @@ if ($params['systemUrlHttps'] == 'https') {
 }
 
 $send_params = array(
-  'success_callback' => $system_url . 'modules/gateways/callback/chip.php?invoiceid=' . $get_invoice_id,
+  'success_callback' => $system_url . 'modules/gateways/callback/chip_fpx.php?invoiceid=' . $get_invoice_id,
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
   'cancel_redirect' => $params['returnurl'],
@@ -99,7 +97,6 @@ if (isset($params['paymentWhitelist']) and $params['paymentWhitelist'] == 'on') 
   $keys = array_keys($params);
   $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
-
   foreach ($result as $key) {
     if ($params[$key] == 'on') {
       $key_array = explode('__', $key);
@@ -112,7 +109,7 @@ if (isset($params['forceTokenization']) and $params['forceTokenization'] == 'on'
   $send_params['force_recurring'] = true;
 }
 
-$chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+$chip = \ChipAPIFPX::get_instance($params['secretKey'], $params['brandId']);
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 
@@ -139,6 +136,6 @@ if (!array_key_exists('id', $payment)) {
   throw new Exception('Failed to create purchase. Errors: ' . print_r($payment, true));
 }
 
-Session::set('chip_' . $params['invoiceid'], $payment['id']);
+Session::set('chip_fpx_' . $params['invoiceid'], $payment['id']);
 
 header('Location: ' . $payment['checkout_url']);

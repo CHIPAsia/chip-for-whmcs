@@ -1,7 +1,7 @@
 <?php
 
-require_once __DIR__ . '/../chip/api.php';
-require_once __DIR__ . '/../chip/action.php';
+require_once __DIR__ . '/../chip_fpxb2b1/api.php';
+require_once __DIR__ . '/../chip_fpxb2b1/action.php';
 require_once __DIR__ . '/../../../init.php';
 App::load_function('gateway');
 App::load_function('invoice');
@@ -22,7 +22,7 @@ if (!in_array($event_type, ['payment.refunded', 'purchase.recurring_token_delete
   die('No supported event type');
 }
 
-$gatewayParams = getGatewayVariables('chip');
+$gatewayParams = getGatewayVariables('chip_fpxb2b1');
 
 if (!$gatewayParams['type']) {
   die('Module Not Activated');
