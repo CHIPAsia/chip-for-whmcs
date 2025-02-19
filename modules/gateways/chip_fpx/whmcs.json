@@ -6,7 +6,7 @@
     "category": "payments",
     "description": {
         "name": "CHIP FPX",
-        "tagline": "CHIP - Digital Finance Platform",
+        "tagline": "CHIP - FPX (Online Banking)",
         "long": "CHIP is a comprehensive Digital Finance Platform specifically designed to support and empower Micro, Small and Medium Enterprises (MSMEs). We provide a suite of solutions encompassing payment collection, expense management, risk mitigation, and treasury management. \n\nOur aim is to help businesses streamline their financial processes, reduce operational complexity, and drive growth.\n\nWith CHIP, you gain a financial partner committed to simplifying, digitizing, and enhancing your financial operations for ultimate success.",
         "features": [
             "Seamless payment experience as payment processing are made in real-time",
@@ -19,7 +19,7 @@
         ]
     },
     "logo": {
-        "filename": "chiplogo.png"
+        "filename": "fpx.png"
     },
     "support": {
         "homepage": "https:\/\/www.chip-in.asia\/",  
