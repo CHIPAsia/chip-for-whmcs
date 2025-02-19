@@ -234,7 +234,7 @@ function chip_ewallets_link($params)
     . nl2br($params['paymentInformation'])
     . '<br />'
     . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_ewallets/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_ewallets/paywithewallet.png" title="' . Lang::trans('Pay with E-Wallet') . '">'
+    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_ewallets/paywithewallet.png" title="' . Lang::trans('Pay with E-Wallet') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')

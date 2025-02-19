@@ -234,7 +234,7 @@ function chip_cards_link($params)
     . nl2br($params['paymentInformation'])
     . '<br />'
     . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_cards/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_cards/paywithcard.png" title="' . Lang::trans('Pay with Visa / Mastercard') . '">'
+    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_cards/paywithcard.png" title="' . Lang::trans('Pay with Visa / Mastercard') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')

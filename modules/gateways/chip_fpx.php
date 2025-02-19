@@ -234,7 +234,7 @@ function chip_fpx_link($params)
     . nl2br($params['paymentInformation'])
     . '<br />'
     . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_fpx/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_fpx/paywithfpx.png" title="' . Lang::trans('Pay with FPX (Online Banking)') . '">'
+    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_fpx/paywithfpx.png" title="' . Lang::trans('Pay with FPX (Online Banking)') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')

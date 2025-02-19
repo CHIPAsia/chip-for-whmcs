@@ -254,7 +254,7 @@ function chip_link($params)
     . nl2br($params['paymentInformation'])
     . '<br />'
     . '<a href="' . $params['systemurl'] . 'modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
+    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip/logo.png" title="' . Lang::trans('Pay with CHIP') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')

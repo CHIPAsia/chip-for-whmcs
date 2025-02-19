@@ -226,7 +226,7 @@ function chip_dnqr_link($params)
     . nl2br($params['paymentInformation'])
     . '<br />'
     . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_dnqr/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
-    . '<img src="' . $params['systemurl'] . 'modules/gateways/chip_dnqr/paywithdnqr.png" title="' . Lang::trans('Pay with Duitnow QR') . '">'
+    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_dnqr/paywithdnqr.png" title="' . Lang::trans('Pay with Duitnow QR') . '">'
     . '</a>'
     . '<br />'
     . Lang::trans('invoicerefnum')
