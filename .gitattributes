@@ -1,0 +1,6 @@
+/.vscode export-ignore
+*.md export-ignore
+.gitignore export-ignore
+/.gitattributes export-ignore
+composer.json export-ignore
+changelog.txt export-ignore
