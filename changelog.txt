@@ -1,0 +1,9 @@
+== Changelog ==
+
+= 1.4.0 2025-02-19 =
+* Added - Multiple payment method support
+* Fixed - Issue with whitelisting payment method for E-Wallet
+
+= 1.3.0 2024-10-16 =
+* Removed - Reliance on session
+* Added - Check invoice ownership against current active client
