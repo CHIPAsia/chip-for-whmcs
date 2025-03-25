@@ -319,10 +319,12 @@ function chip_fpx_TransactionInformation(array $params = []): Information
     }
   }
 
+  $currency = WHMCS\Billing\Currency::where("code", $payment['payment']['currency'])->firstOrFail();
+
   return $information
     ->setTransactionId($payment['id'])
     ->setAmount($payment['payment']['amount'] / 100)
-    ->setCurrency($payment['payment']['currency'])
+    ->setCurrency($currency)
     ->setType($payment['type'])
     ->setAvailableOn(Carbon::parse($payment['paid_on']))
     ->setCreated(Carbon::parse($payment['created_on']))
