@@ -16,7 +16,7 @@ class ChipActionDNQR
     if (\is_array($payment)) { // success callback
       $payment_id = $payment['id'];
     } elseif (\is_string($payment)) { // success redirect
-      $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
       $payment_id = $payment;
       $payment = $chip->get_payment($payment);
     } else {
@@ -129,7 +129,7 @@ class ChipActionDNQR
       return $public_key;
     }
 
-    $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
+    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
     $public_key = \str_replace('\n', "\n", $chip->public_key());
 
     WHMCSSetting::setValue("CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key);

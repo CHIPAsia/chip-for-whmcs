@@ -16,7 +16,7 @@ class ChipActionCards
     if (\is_array($payment)) { // success callback
       $payment_id = $payment['id'];
     } elseif (\is_string($payment)) { // success redirect
-      $chip = \ChipAPICards::get_instance($params['secretKey'], $params['brandId']);
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
       $payment_id = $payment;
       $payment = $chip->get_payment($payment);
     } else {
