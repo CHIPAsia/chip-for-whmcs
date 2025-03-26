@@ -16,7 +16,7 @@ if (!defined("WHMCS")) {
   die("This file cannot be accessed directly");
 }
 
-require_once __DIR__ . '/chip_ewallets/api.php';
+require_once __DIR__ . '/chip/api.php';
 require_once __DIR__ . '/chip_ewallets/action.php';
 
 function chip_ewallets_MetaData()
@@ -47,7 +47,7 @@ function chip_ewallets_config($params = array())
   if (empty($params['secretKey'] || empty($params['brandId']))) {
     // do nothing
   } else {
-    $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
+    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
     // $result = $chip->payment_methods('MYR');
 
     // List all payment methods
@@ -263,7 +263,7 @@ function chip_ewallets_refund($params)
     );
   }
 
-  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
 
   if (!array_key_exists('id', $result) or $result['status'] != 'success') {
@@ -287,7 +287,7 @@ function chip_ewallets_account_balance($params)
   $balanceInfo = [];
 
   // Connect to gateway to retrieve balance information.
-  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $balanceData = $chip->account_balance();
 
   foreach ($balanceData as $currency => $value) {
@@ -303,7 +303,7 @@ function chip_ewallets_account_balance($params)
 
 function chip_ewallets_TransactionInformation(array $params = []): Information
 {
-  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $payment = $chip->get_payment($params['transactionId']);
   $information = new Information();
 
@@ -343,7 +343,7 @@ function chip_ewallets_capture($params)
     return array("status" => "declined", 'declinereason' => 'Unsupported currency');
   }
 
-  $chip = \ChipAPIEwallets::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
   $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
   $client = $get_client['results'][0];
@@ -423,7 +423,7 @@ function chip_ewallets_storeremote($params)
 
   switch ($action) {
     case 'delete':
-      $chip = \ChipAPIEwallets::get_instance($params['secretKey'], '');
+      $chip = \ChipAPI::get_instance($params['secretKey'], '');
       $chip->delete_token($token);
       break;
   }
