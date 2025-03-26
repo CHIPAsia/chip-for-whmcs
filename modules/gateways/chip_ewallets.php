@@ -323,11 +323,14 @@ function chip_ewallets_TransactionInformation(array $params = []): Information
 
   return $information
     ->setTransactionId($payment['id'])
-    ->setAmount($payment['payment']['amount'] / 100)
+    ->setAmount($payment['payment']['amount'] / 100, $currency)
     ->setCurrency($currency)
+		->setFeeCurrency($currency)
+		->setMerchantCurrency($currency)
+		->setMerchantAmount(($payment['payment']['amount'] - $payment_fee) / 100, $currency)
     ->setType($payment['type'])
-    ->setAvailableOn(Carbon::parse($payment['paid_on']))
-    ->setCreated(Carbon::parse($payment['created_on']))
+		->setAdditionalDatum('chip_paid_on', Carbon::createFromTimestampUTC($payment['payment']['paid_on'])->setTimezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i'))
+    ->setCreated(Carbon::createFromTimestampUTC($payment['created_on'])->setTimezone('Asia/Kuala_Lumpur'))
     ->setDescription($payment['payment']['description'])
     ->setFee($payment_fee / 100)
     ->setStatus($payment['status']);
