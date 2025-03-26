@@ -4,7 +4,7 @@ use WHMCS\Session;
 use WHMCS\Invoice;
 use WHMCS\Authentication\CurrentUser;
 
-require_once __DIR__ . '/api.php';
+require_once __DIR__ . '/../chip/api.php';
 require_once __DIR__ . '/action.php';
 require_once __DIR__ . '/../../../init.php';
 App::load_function('gateway');
