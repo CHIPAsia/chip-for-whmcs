@@ -109,7 +109,7 @@ if (isset($params['forceTokenization']) and $params['forceTokenization'] == 'on'
   $send_params['force_recurring'] = true;
 }
 
-$chip = \ChipAPIFPX::get_instance($params['secretKey'], $params['brandId']);
+$chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 

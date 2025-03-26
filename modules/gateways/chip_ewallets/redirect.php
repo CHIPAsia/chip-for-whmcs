@@ -107,7 +107,7 @@ if (isset($params['forceTokenization']) AND $params['forceTokenization'] == 'on'
   $send_params['force_recurring'] = true;
 }
 
-$chip    = \ChipAPIEwallets::get_instance( $params['secretKey'], $params['brandId'] );
+$chip    = \ChipAPI::get_instance( $params['secretKey'], $params['brandId'] );
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 

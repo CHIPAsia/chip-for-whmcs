@@ -129,7 +129,7 @@ class ChipActionCards
       return $public_key;
     }
 
-    $chip = \ChipAPICards::get_instance($params['secretKey'], $params['brandId']);
+    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
     $public_key = \str_replace('\n', "\n", $chip->public_key());
 
     WHMCSSetting::setValue("CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key);

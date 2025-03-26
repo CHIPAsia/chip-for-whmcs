@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../chip_cards/api.php';
+require_once __DIR__ . '/../chip/api.php';
 require_once __DIR__ . '/../chip_cards/action.php';
 require_once __DIR__ . '/../../../init.php';
 App::load_function('gateway');
