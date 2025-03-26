@@ -63,7 +63,7 @@ $send_params = array(
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
   'cancel_redirect'  => $params['returnurl'],
-  'creator_agent'    => 'WHMCS: 1.4.0',
+  'creator_agent'    => 'WHMCS: 1.5.0',
   'reference'        => $params['invoiceid'],
   'platform'         => 'whmcs',
   'send_receipt'     => $params['purchaseSendReceipt'] == 'on',
@@ -108,7 +108,7 @@ if (isset($params['forceTokenization']) AND $params['forceTokenization'] == 'on'
   $send_params['force_recurring'] = true;
 }
 
-$chip    = \ChipAPICards::get_instance( $params['secretKey'], $params['brandId'] );
+$chip    = \ChipAPI::get_instance( $params['secretKey'], $params['brandId'] );
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 

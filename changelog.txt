@@ -1,5 +1,10 @@
 == Changelog ==
 
+= 1.5.0 2025-03-26 =
+* Fixed - Issue with transaction information error when loading popup
+* Fixed - Issue with timezone not reflecting Asia/Kuala_Lumpur time
+* Fixed - Issue with Class ChipAPICards not found
+
 = 1.4.0 2025-02-19 =
 * Added - Multiple payment method support
 * Fixed - Issue with whitelisting payment method for E-Wallet

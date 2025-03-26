@@ -4,7 +4,7 @@ use WHMCS\Session;
 use WHMCS\Invoice;
 use WHMCS\Authentication\CurrentUser;
 
-require_once __DIR__ . '/api.php';
+require_once __DIR__ . '/../chip/api.php';
 require_once __DIR__ . '/action.php';
 require_once __DIR__ . '/../../../init.php';
 App::load_function('gateway');
@@ -62,7 +62,7 @@ $send_params = array(
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
   'cancel_redirect' => $params['returnurl'],
-  'creator_agent' => 'WHMCS: 1.4.0',
+  'creator_agent' => 'WHMCS: 1.5.0',
   'reference' => $params['invoiceid'],
   'platform' => 'whmcs',
   'send_receipt' => $params['purchaseSendReceipt'] == 'on',
@@ -109,7 +109,7 @@ if (isset($params['forceTokenization']) and $params['forceTokenization'] == 'on'
   $send_params['force_recurring'] = true;
 }
 
-$chip = \ChipAPIFPXB2B1::get_instance($params['secretKey'], $params['brandId']);
+$chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 

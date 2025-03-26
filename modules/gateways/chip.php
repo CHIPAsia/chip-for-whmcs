@@ -339,13 +339,18 @@ function chip_TransactionInformation(array $params = []): Information
     }
   }
 
+  $currency = WHMCS\Billing\Currency::where("code", $payment['payment']['currency'])->firstOrFail();
+
   return $information
     ->setTransactionId($payment['id'])
-    ->setAmount($payment['payment']['amount'] / 100)
-    ->setCurrency($payment['payment']['currency'])
+    ->setAmount($payment['payment']['amount'] / 100, $currency)
+    ->setCurrency($currency)
+    ->setFeeCurrency($currency)
+    ->setMerchantCurrency($currency)
+    ->setMerchantAmount(($payment['payment']['amount'] - $payment_fee) / 100, $currency)
     ->setType($payment['type'])
-    ->setAvailableOn(Carbon::parse($payment['paid_on']))
-    ->setCreated(Carbon::parse($payment['created_on']))
+    ->setAdditionalDatum('chip_paid_on', Carbon::createFromTimestampUTC($payment['payment']['paid_on'])->setTimezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i'))
+    ->setCreated(Carbon::createFromTimestampUTC($payment['created_on'])->setTimezone('Asia/Kuala_Lumpur'))
     ->setDescription($payment['payment']['description'])
     ->setFee($payment_fee / 100)
     ->setStatus($payment['status']);
@@ -371,7 +376,7 @@ function chip_capture($params)
 
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent' => 'WHMCS: 1.4.0',
+    'creator_agent' => 'WHMCS: 1.5.0',
     'reference' => $params['invoiceid'],
     'client_id' => $client['id'],
     'platform' => 'whmcs',

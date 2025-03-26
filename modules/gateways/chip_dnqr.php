@@ -16,7 +16,7 @@ if (!defined("WHMCS")) {
   die("This file cannot be accessed directly");
 }
 
-require_once __DIR__ . '/chip_dnqr/api.php';
+require_once __DIR__ . '/chip/api.php';
 require_once __DIR__ . '/chip_dnqr/action.php';
 
 function chip_dnqr_MetaData()
@@ -47,7 +47,7 @@ function chip_dnqr_config($params = array())
   if (empty($params['secretKey'] || empty($params['brandId']))) {
     // do nothing
   } else {
-    $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
+    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
     // $result = $chip->payment_methods('MYR');
 
     // List all payment methods
@@ -255,7 +255,7 @@ function chip_dnqr_refund($params)
     );
   }
 
-  $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
 
   if (!array_key_exists('id', $result) or $result['status'] != 'success') {
@@ -279,7 +279,7 @@ function chip_dnqr_account_balance($params)
   $balanceInfo = [];
 
   // Connect to gateway to retrieve balance information.
-  $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $balanceData = $chip->account_balance();
 
   foreach ($balanceData as $currency => $value) {
@@ -295,7 +295,7 @@ function chip_dnqr_account_balance($params)
 
 function chip_dnqr_TransactionInformation(array $params = []): Information
 {
-  $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $payment = $chip->get_payment($params['transactionId']);
   $information = new Information();
 
@@ -311,13 +311,18 @@ function chip_dnqr_TransactionInformation(array $params = []): Information
     }
   }
 
+  $currency = WHMCS\Billing\Currency::where("code", $payment['payment']['currency'])->firstOrFail();
+
   return $information
     ->setTransactionId($payment['id'])
-    ->setAmount($payment['payment']['amount'] / 100)
-    ->setCurrency($payment['payment']['currency'])
+    ->setAmount($payment['payment']['amount'] / 100, $currency)
+    ->setCurrency($currency)
+    ->setFeeCurrency($currency)
+    ->setMerchantCurrency($currency)
+    ->setMerchantAmount(($payment['payment']['amount'] - $payment_fee) / 100, $currency)
     ->setType($payment['type'])
-    ->setAvailableOn(Carbon::parse($payment['paid_on']))
-    ->setCreated(Carbon::parse($payment['created_on']))
+    ->setAdditionalDatum('chip_paid_on', Carbon::createFromTimestampUTC($payment['payment']['paid_on'])->setTimezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i'))
+    ->setCreated(Carbon::createFromTimestampUTC($payment['created_on'])->setTimezone('Asia/Kuala_Lumpur'))
     ->setDescription($payment['payment']['description'])
     ->setFee($payment_fee / 100)
     ->setStatus($payment['status']);
@@ -330,7 +335,7 @@ function chip_dnqr_capture($params)
     return array("status" => "declined", 'declinereason' => 'Unsupported currency');
   }
 
-  $chip = \ChipAPIDNQR::get_instance($params['secretKey'], $params['brandId']);
+  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
   $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
   $client = $get_client['results'][0];
@@ -343,7 +348,7 @@ function chip_dnqr_capture($params)
 
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip_dnqr.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent' => 'WHMCS: 1.4.0',
+    'creator_agent' => 'WHMCS: 1.5.0',
     'reference' => $params['invoiceid'],
     'client_id' => $client['id'],
     'platform' => 'whmcs',
@@ -410,7 +415,7 @@ function chip_dnqr_storeremote($params)
 
   switch ($action) {
     case 'delete':
-      $chip = \ChipAPIDNQR::get_instance($params['secretKey'], '');
+      $chip = \ChipAPI::get_instance($params['secretKey'], '');
       $chip->delete_token($token);
       break;
   }
