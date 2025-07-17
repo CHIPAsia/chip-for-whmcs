@@ -168,7 +168,7 @@ class ChipAPI
       curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
     }
 
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
