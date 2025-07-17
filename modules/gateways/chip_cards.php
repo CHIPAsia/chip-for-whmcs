@@ -69,7 +69,7 @@ function chip_cards_config($params = array())
       ]
     ];
 
-    if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
+    if (is_array($result) && array_key_exists('available_payment_methods', $result) && !empty($result['available_payment_methods'])) {
       foreach ($result['available_payment_methods'] as $apm) {
 
 
@@ -103,7 +103,7 @@ function chip_cards_config($params = array())
       ]
     ];
 
-    if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
+    if (is_array($result) && array_key_exists('available_payment_methods', $result) && !empty($result['available_payment_methods'])) {
       $show_force_token_option = true;
     }
   }

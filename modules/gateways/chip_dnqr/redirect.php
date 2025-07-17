@@ -113,11 +113,11 @@ $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 
-if (array_key_exists('__all__', $get_client)) {
+if (!is_array($get_client) || array_key_exists('__all__', $get_client)) {
   throw new Exception('Failed to create purchase. Errors: ' . print_r($get_client, true));
 }
 
-if (is_array($get_client['results']) and !empty($get_client['results'])) {
+if (!empty($get_client['results']) && is_array($get_client['results'])) {
   $client = $get_client['results'][0];
 
   if ($params['updateClientInfo'] == 'on') {

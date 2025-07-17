@@ -50,7 +50,7 @@ function chip_config($params = array())
     $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
     $result = $chip->payment_methods('MYR');
 
-    if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
+    if (is_array($result) && array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
       foreach ($result['available_payment_methods'] as $apm) {
         $available_payment_method['payment_method_whitelist__' . $apm] = array(
           'FriendlyName' => 'Whitelist ' . ucfirst($apm),
@@ -64,7 +64,7 @@ function chip_config($params = array())
 
     $result = $chip->payment_recurring_methods('MYR');
 
-    if (array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
+    if (is_array($result) && array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
       $show_force_token_option = true;
     }
   }
