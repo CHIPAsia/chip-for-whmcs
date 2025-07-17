@@ -18,8 +18,10 @@ if (!isset($_SERVER['HTTP_X_SIGNATURE'])) {
   die('No X Signature received from headers');
 }
 
-if (empty($get_invoice_id = intval($_GET['invoiceid']))) {
-  die('invoiceid parameter is empty');
+// In redirect files, validate invoice ID
+$get_invoice_id = filter_var($_GET['invoiceid'], FILTER_VALIDATE_INT);
+if (!$get_invoice_id || $get_invoice_id <= 0) {
+    die('Invalid invoice ID');
 }
 
 $gatewayParams = getGatewayVariables('chip_fpxb2b1');

@@ -1,5 +1,12 @@
 == Changelog ==
 
+= 1.6.0 2025-07-17 =
+* Improved - All uses of array_key_exists now safely check is_array to prevent errors
+* Improved - Invoice ID validation now uses filter_var for better security and correctness
+* Improved - Consistent error handling and input validation across all gateway and callback files
+* Fixed - Potential issues with null or non-array API responses
+* Security - Recommended enabling SSL verification for all API calls
+
 = 1.5.1 2025-03-26 =
 * Fixed - Issue with transaction information error when loading popup
 * Fixed - Issue with timezone not reflecting Asia/Kuala_Lumpur time

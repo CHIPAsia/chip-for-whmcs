@@ -14,11 +14,11 @@ if ( !isset($_GET['invoiceid']) ) {
   exit;
 }
 
-$get_invoice_id  = intval($_GET['invoiceid']);
-
-if ( empty($get_invoice_id) ) {
-  header( 'Location: ' . $CONFIG['SystemURL'] );
-  exit;
+// In redirect files, validate invoice ID
+$get_invoice_id = filter_var($_GET['invoiceid'], FILTER_VALIDATE_INT);
+if (!$get_invoice_id || $get_invoice_id <= 0) {
+    header('Location: ' . $CONFIG['SystemURL']);
+    exit;
 }
 
 $invoice = new Invoice($get_invoice_id);
@@ -112,11 +112,11 @@ $chip    = \ChipAPI::get_instance( $params['secretKey'], $params['brandId'] );
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 
-if (array_key_exists('__all__', $get_client)) {
+if (!is_array($get_client) || array_key_exists('__all__', $get_client)) {
   throw new Exception( 'Failed to create purchase. Errors: ' . print_r($get_client, true) ) ;
 }
 
-if (is_array($get_client['results']) AND !empty($get_client['results'])) {
+if (!empty($get_client['results']) && is_array($get_client['results'])) {
   $client = $get_client['results'][0];
 
   if ($params['updateClientInfo'] == 'on') {
@@ -131,7 +131,7 @@ $send_params['client_id'] = $client['id'];
 
 $payment = $chip->create_payment( $send_params );
 
-if ( !array_key_exists('id', $payment) ) {
+if ( !is_array($payment) || !array_key_exists('id', $payment) ) {
   throw new Exception( 'Failed to create purchase. Errors: ' . print_r($payment, true) ) ;
 }
 
