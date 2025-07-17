@@ -286,7 +286,7 @@ function chip_refund($params)
   $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
   $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
 
-  if (!array_key_exists('id', $result) or $result['status'] != 'success') {
+  if (!is_array($result) || !array_key_exists('id', $result) or $result['status'] != 'success') {
     return array(
       'status' => 'error',
       'rawdata' => json_encode($result),
@@ -327,7 +327,7 @@ function chip_TransactionInformation(array $params = []): Information
   $payment = $chip->get_payment($params['transactionId']);
   $information = new Information();
 
-  if (array_key_exists('__all__', $payment)) {
+  if (!is_array($payment) || array_key_exists('__all__', $payment)) {
     return $information;
   }
 

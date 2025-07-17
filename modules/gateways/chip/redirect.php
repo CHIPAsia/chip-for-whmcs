@@ -116,7 +116,7 @@ $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 
-if (array_key_exists('__all__', $get_client)) {
+if (is_array($get_client) && array_key_exists('__all__', $get_client)) {
   throw new Exception('Failed to create purchase. Errors: ' . print_r($get_client, true));
 }
 
@@ -135,7 +135,7 @@ $send_params['client_id'] = $client['id'];
 
 $payment = $chip->create_payment($send_params);
 
-if (!array_key_exists('id', $payment)) {
+if (!is_array($payment) || !array_key_exists('id', $payment)) {
   throw new Exception('Failed to create purchase. Errors: ' . print_r($payment, true));
 }
 

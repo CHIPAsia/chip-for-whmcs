@@ -132,7 +132,7 @@ $send_params['client_id'] = $client['id'];
 
 $payment = $chip->create_payment($send_params);
 
-if (!array_key_exists('id', $payment)) {
+if (!is_array($payment) || !array_key_exists('id', $payment)) {
   throw new Exception('Failed to create purchase. Errors: ' . print_r($payment, true));
 }
 
