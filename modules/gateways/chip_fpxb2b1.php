@@ -17,7 +17,7 @@ if (!defined("WHMCS")) {
 }
 
 require_once __DIR__ . '/chip/api.php';
-require_once __DIR__ . '/chip_fpxb2b1/action.php';
+require_once __DIR__ . '/chip/action.php';
 
 function chip_fpxb2b1_MetaData()
 {
@@ -225,7 +225,7 @@ function chip_fpxb2b1_link($params)
   if (isset($_GET['success']) && !empty(Session::get('chip_fpxb2b1_' . $params['invoiceid']))) {
     $payment_id = Session::getAndDelete('chip_fpxb2b1_' . $params['invoiceid']);
 
-    if (\ChipActionFPXB2B1::complete_payment($params, $payment_id)) {
+    if (\ChipAction::complete_payment($params, $payment_id)) {
       return '<script>window.location.reload();</script>';
     }
   }

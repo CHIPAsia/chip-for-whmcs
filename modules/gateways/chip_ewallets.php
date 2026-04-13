@@ -17,7 +17,7 @@ if (!defined("WHMCS")) {
 }
 
 require_once __DIR__ . '/chip/api.php';
-require_once __DIR__ . '/chip_ewallets/action.php';
+require_once __DIR__ . '/chip/action.php';
 
 function chip_ewallets_MetaData()
 {
@@ -225,7 +225,7 @@ function chip_ewallets_link($params)
   if (isset($_GET['success']) && !empty(Session::get('chip_ewallets_' . $params['invoiceid']))) {
     $payment_id = Session::getAndDelete('chip_ewallets_' . $params['invoiceid']);
 
-    if (\ChipActionEwallets::complete_payment($params, $payment_id)) {
+    if (\ChipAction::complete_payment($params, $payment_id)) {
       return '<script>window.location.reload();</script>';
     }
   }
