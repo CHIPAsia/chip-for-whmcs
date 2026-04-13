@@ -1,30 +1,51 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../modules/gateways/chip/action.php';
-
-// Mock WHMCS Functions
-if (!function_exists('convertCurrency')) {
-    function convertCurrency($amount, $from, $to) {
-        return $amount; // Simple mock
+namespace {
+    // Mock ChipAPI if not loaded
+    if (!class_exists('ChipAPI')) {
+        class ChipAPI {
+            public static function get_instance($key, $brandId) {
+                return new self();
+            }
+            public function get_payment($id) {
+                return [
+                    'id' => $id,
+                    'status' => 'paid',
+                    'payment' => ['currency' => 'MYR', 'amount' => 10000],
+                    'transaction_data' => ['attempts' => [['fee_amount' => 100]]],
+                    'is_recurring_token' => false
+                ];
+            }
+            public function public_key() { return 'mock_key'; }
+        }
     }
-}
 
-if (!function_exists('addInvoicePayment')) {
-    function addInvoicePayment($invoiceId, $transId, $amount, $fee, $gateway, $sendEmail = false) {
-        return true;
+    require_once __DIR__ . '/../vendor/autoload.php';
+    require_once __DIR__ . '/../modules/gateways/chip/action.php';
+
+    // Mock WHMCS Functions
+    if (!function_exists('convertCurrency')) {
+        function convertCurrency($amount, $from, $to) {
+            return $amount; // Simple mock
+        }
     }
-}
 
-if (!function_exists('logTransaction')) {
-    function logTransaction($gateway, $data, $status, $extra = []) {
-        // Mock
+    if (!function_exists('addInvoicePayment')) {
+        function addInvoicePayment($invoiceId, $transId, $amount, $fee, $gateway, $sendEmail = false) {
+            return true;
+        }
     }
-}
 
-if (!function_exists('sendMessage')) {
-    function sendMessage($template, $invoiceId, $extra = []) {
-        // Mock
+    if (!function_exists('logTransaction')) {
+        function logTransaction($gateway, $data, $status, $extra = []) {
+            // Mock
+        }
+    }
+
+    if (!function_exists('sendMessage')) {
+        function sendMessage($template, $invoiceId, $extra = []) {
+            // Mock
+        }
     }
 }
 
@@ -131,23 +152,3 @@ namespace WHMCS\Mail {
     }
 }
 
-namespace {
-    // Mock ChipAPI if not loaded
-    if (!class_exists('ChipAPI')) {
-        class ChipAPI {
-            public static function get_instance($key, $brandId) {
-                return new self();
-            }
-            public function get_payment($id) {
-                return [
-                    'id' => $id,
-                    'status' => 'paid',
-                    'payment' => ['currency' => 'MYR', 'amount' => 10000],
-                    'transaction_data' => ['attempts' => [['fee_amount' => 100]]],
-                    'is_recurring_token' => false
-                ];
-            }
-            public function public_key() { return 'mock_key'; }
-        }
-    }
-}
