@@ -25,7 +25,7 @@ Please generate a Pull Request description that follows this exact format:
 <!-- Provide Asana / Jira / Trello task link here -->
 
 ## How to test
-[Provide step-by-step instructions to help others verify the change. Suggest specific tests based on the modified files. Mention that unit tests can be run via `vendor/bin/phpunit`.]
+[Provide step-by-step instructions to help others verify the change. Suggest specific tests based on the modified files.]
 
 ## Potential Risks & Senior Review Items
 [Identify potential side effects, performance implications, security considerations, or architectural concerns. Highlight specific areas where a senior engineer should focus their review.]
