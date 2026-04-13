@@ -56,12 +56,6 @@ class ChipAPI
     return $result;
   }
 
-  public function was_payment_successful($payment_id)
-  {
-    $result = $this->get_payment($payment_id);
-    return $result && $result['status'] == 'paid';
-  }
-
   public function create_client($params)
   {
     return $this->call('POST', "/clients/", $params);
