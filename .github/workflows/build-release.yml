@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get version
         id: get_version
@@ -32,14 +32,14 @@ jobs:
 
       - name: Upload Artifact (PR)
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}
           path: chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip
 
       - name: Create Release and Upload Asset (Tag)
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip
           generate_release_notes: true
