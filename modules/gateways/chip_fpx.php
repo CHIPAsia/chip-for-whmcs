@@ -65,7 +65,8 @@ function chip_fpx_config($params = array())
         'razer_shopeepay',
         'razer_tng',
         'mpgs_apple_pay',
-        'mpgs_google_pay'
+        'mpgs_google_pay',
+        'crypto_coin'
       ]
     ];
 
