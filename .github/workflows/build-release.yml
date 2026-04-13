@@ -1,0 +1,47 @@
+name: Build and Release
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release Archive
+        run: |
+          zip -r chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip modules/ LICENSE
+
+      - name: Upload Artifact (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}
+          path: chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip
+
+      - name: Create Release and Upload Asset (Tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
