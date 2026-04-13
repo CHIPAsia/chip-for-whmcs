@@ -349,7 +349,7 @@ function chip_dnqr_capture($params)
 
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip_dnqr.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent' => 'WHMCS: 1.5.1',
+    'creator_agent' => 'WHMCS: 1.6.1',
     'reference' => $params['invoiceid'],
     'client_id' => $client['id'],
     'platform' => 'whmcs',

@@ -63,7 +63,7 @@ $send_params = array(
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
   'cancel_redirect'  => $params['returnurl'],
-  'creator_agent'    => 'WHMCS: 1.5.1',
+  'creator_agent'    => 'WHMCS: 1.6.1',
   'reference'        => $params['invoiceid'],
   'platform'         => 'whmcs',
   'send_receipt'     => $params['purchaseSendReceipt'] == 'on',

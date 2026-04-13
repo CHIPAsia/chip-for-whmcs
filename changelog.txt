@@ -1,5 +1,11 @@
 == Changelog ==
 
+= 1.6.1 2026-04-13 =
+* Added - CHIP Crypto Coin payment method
+* Refactor - Consolidate gateway logic into shared ChipAction class
+* Improved - Payment completion logic with database transactions and better lock handling
+* Improved - Dynamic gateway factory and email template selection
+
 = 1.6.0 2025-07-17 =
 * Improved - All uses of array_key_exists now safely check is_array to prevent errors
 * Improved - Invoice ID validation now uses filter_var for better security and correctness
