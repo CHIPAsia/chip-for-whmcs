@@ -18,6 +18,7 @@ if (!defined("WHMCS")) {
 
 require_once __DIR__ . '/chip/api.php';
 require_once __DIR__ . '/chip/action.php';
+require_once __DIR__ . '/chip/helpers.php';
 
 function chip_fpxb2b1_MetaData()
 {
@@ -31,176 +32,7 @@ function chip_fpxb2b1_MetaData()
 
 function chip_fpxb2b1_config($params = array())
 {
-  $list_time_zones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
-
-  $formatted_time_zones = array();
-  foreach ($list_time_zones as $mtz) {
-    $formatted_time_zones[$mtz] = str_replace("_", " ", $mtz);
-    ;
-  }
-
-  // query available payment method
-  $show_whitelist_option = false;
-  $show_force_token_option = false;
-  $available_payment_method = array();
-
-  if (empty($params['secretKey'] || empty($params['brandId']))) {
-    // do nothing
-  } else {
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-    // $result = $chip->payment_methods('MYR');
-
-    // List all payment methods
-    $result = [
-      'available_payment_methods' => [
-        'fpx',
-        'fpx_b2b1',
-        'duitnow_qr',
-        'maestro',
-        'mastercard',
-        'visa',
-        'razer_atome',
-        'razer_grabpay',
-        'razer_maybankqr',
-        'razer_shopeepay',
-        'razer_tng',
-        'mpgs_apple_pay',
-        'mpgs_google_pay',
-        'crypto_coin'
-      ]
-    ];
-
-    if (is_array($result) && array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
-      foreach ($result['available_payment_methods'] as $apm) {
-
-
-        // Set yes to FPX by default
-        if (in_array($apm, ['fpx_b2b1'])) {
-          $available_payment_method['payment_method_whitelist__' . $apm] = array(
-            'FriendlyName' => 'Whitelist ' . ucfirst($apm),
-            'Type' => 'yesno',
-            'Default' => 'yes',
-            'Description' => 'Tick to enable ' . ucfirst($apm),
-          );
-        } else {
-          $available_payment_method['payment_method_whitelist__' . $apm] = array(
-            'FriendlyName' => 'Whitelist ' . ucfirst($apm),
-            'Type' => 'yesno',
-            'Description' => 'Tick to enable ' . ucfirst($apm),
-          );
-        }
-      }
-
-      $show_whitelist_option = true;
-    }
-
-    // Recurring payment methods
-    // $result = $chip->payment_recurring_methods('MYR');
-    $result = [
-      'available_payment_methods' => [
-        "maestro",
-        "mastercard",
-        "visa"
-      ]
-    ];
-
-    if (is_array($result) && array_key_exists('available_payment_methods', $result) and !empty($result['available_payment_methods'])) {
-      $show_force_token_option = true;
-    }
-  }
-
-  $config_params = array(
-    'FriendlyName' => array(
-      'Type' => 'System',
-      'Value' => 'FPX B2B (Corporate Online Banking)',
-    ),
-    'brandId' => array(
-      'FriendlyName' => 'Brand ID',
-      'Type' => 'text',
-      'Size' => '25',
-      'Default' => '',
-      'Description' => 'Enter your Brand ID here',
-    ),
-    'secretKey' => array(
-      'FriendlyName' => 'Secret Key',
-      'Type' => 'text',
-      'Size' => '25',
-      'Default' => '',
-      'Description' => 'Enter secret key here',
-    ),
-    'paymentInformation' => array(
-      'FriendlyName' => 'Payment Information',
-      'Type' => 'textarea',
-      'Rows' => '5',
-      'Description' => 'This information will be displayed on the payment page.'
-    ),
-    'dueStrict' => array(
-      'FriendlyName' => 'Due Strict',
-      'Type' => 'yesno',
-      'Description' => 'Tick to enforce due strict payment timeframe',
-      'Default' => 'on',
-    ),
-    'dueStrictTiming' => array(
-      'FriendlyName' => 'Due Strict Timing',
-      'Type' => 'text',
-      'Size' => '3',
-      'Default' => '60', // 60 minutes
-      'Description' => 'Enter due strict timing. Default 60 for 1 hour.',
-    ),
-    'purchaseSendReceipt' => array(
-      'FriendlyName' => 'Purchase Send Receipt',
-      'Type' => 'yesno',
-      'Description' => 'Tick to ask CHIP to send receipt upon successful payment.',
-      'Default' => 'on',
-    ),
-    'purchaseTimeZone' => array(
-      'FriendlyName' => 'Time zone',
-      'Type' => 'dropdown',
-      'Description' => 'Time zone setting for receipt page.',
-      'Default' => 'Asia/Kuala_Lumpur',
-      'Options' => $formatted_time_zones
-    ),
-    'updateClientInfo' => array(
-      'FriendlyName' => 'Update client information',
-      'Type' => 'yesno',
-      'Description' => 'Tick to update client information on purchase creation.',
-      'Default' => 'on',
-    ),
-    'systemUrlHttps' => array(
-      'FriendlyName' => 'System URL Mode',
-      'Type' => 'dropdown',
-      'Description' => 'Choose https if you are facing issue with payment status update due to http to https redirection',
-      'Options' => array(
-        'default' => 'System Default',
-        'https' => 'Force HTTPS',
-      )
-    ),
-    'A' => array(
-      'FriendlyName' => '',
-      'Description' => '',
-    ),
-  );
-
-  if ($show_force_token_option) {
-    $config_params['forceTokenization'] = array(
-      'FriendlyName' => 'Force Tokenization',
-      'Type' => 'yesno',
-      'Description' => 'Tick to force tokenization for card payment.',
-    );
-  }
-
-  if ($show_whitelist_option) {
-    $config_params['paymentWhitelist'] = array(
-      'FriendlyName' => 'Payment Method Whitelisting',
-      'Type' => 'yesno',
-      'Description' => 'Tick to enforce payment method whitelisting.',
-      'Default' => 'yes',
-    );
-
-    $config_params += $available_payment_method;
-  }
-
-  return $config_params;
+  return ChipHelpers::get_config_params('chip_fpxb2b1', 'FPX B2B (Corporate Online Banking)', $params);
 }
 
 function chip_fpxb2b1_config_validate(array $params)
@@ -234,7 +66,7 @@ function chip_fpxb2b1_link($params)
   $html = '<p>'
     . nl2br($params['paymentInformation'])
     . '<br />'
-    . '<a href="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/redirect.php?invoiceid=' . $params['invoiceid'] . '">'
+    . '<a href="' . $params['systemurl'] . 'modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '&gateway=chip_fpxb2b1">'
     . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_fpxb2b1/paywithfpx.png" title="' . Lang::trans('Pay with FPX B2B (Corporate Online Banking)') . '">'
     . '</a>'
     . '<br />'

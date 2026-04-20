@@ -145,6 +145,13 @@ class ChipAction
 
   public static function clean_up_public_key()
   {
+    if (PHP_SAPI !== 'cli') {
+      $currentUser = new \WHMCS\Authentication\CurrentUser;
+      if (!$currentUser->isAuthenticatedAdmin()) {
+        die('Unauthorized');
+      }
+    }
+
     require __DIR__ . '/../../../init.php';
     WHMCSSetting::where('setting', 'LIKE', "CHIP_PUBLIC_KEY_%")->delete();
 

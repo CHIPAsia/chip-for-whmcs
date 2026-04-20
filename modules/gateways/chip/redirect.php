@@ -11,18 +11,28 @@ App::load_function('gateway');
 App::load_function('invoice');
 
 if (!isset($_GET['invoiceid'])) {
+  logActivity('CHIP Redirect: Missing invoiceid');
   exit;
 }
+
+$gateway_module = isset($_GET['gateway']) ? $_GET['gateway'] : 'chip';
 
 // In redirect files, validate invoice ID
 $get_invoice_id = filter_var($_GET['invoiceid'], FILTER_VALIDATE_INT);
 if (!$get_invoice_id || $get_invoice_id <= 0) {
+    logActivity('CHIP Redirect: Invalid invoiceid ' . $_GET['invoiceid']);
     header('Location: ' . $CONFIG['SystemURL']);
     exit;
 }
 
 $invoice = new Invoice($get_invoice_id);
 $params = $invoice->getGatewayInvoiceParams();
+
+if ($params['paymentmethod'] != $gateway_module) {
+  logActivity("CHIP Redirect: Gateway mismatch. Expected $gateway_module, got " . $params['paymentmethod']);
+  header('Location: ' . $params['returnurl']);
+  exit;
+}
 
 // Note: https://classdocs.whmcs.com/8.0/WHMCS/Authentication/CurrentUser.html
 $currentUser = new CurrentUser;
@@ -37,17 +47,14 @@ if ($admin) {
   $param_client_id = $params['clientdetails']['client_id'];
 
   if ($current_user_client_id != $param_client_id) {
-    logActivity('Attempt to access other client invoice with number #' . $get_invoice_id, $current_user_client_id);
+    logActivity('CHIP Redirect: Attempt to access other client invoice with number #' . $get_invoice_id, $current_user_client_id);
     header('Location: ' . $CONFIG['SystemURL']);
     exit;
   }
 } else {
+  logActivity('CHIP Redirect: Unauthenticated access attempt for invoice #' . $get_invoice_id);
   header('Location: ' . $CONFIG['SystemURL']);
   exit;
-}
-
-if ($params['paymentmethod'] != 'chip') {
-  header('Location: ' . $params['returnurl']);
 }
 
 $phone_a = explode('.', $params['clientdetails']['phonenumberformatted']);
@@ -60,11 +67,11 @@ if ($params['systemUrlHttps'] == 'https') {
 }
 
 $send_params = array(
-  'success_callback' => $system_url . 'modules/gateways/callback/chip.php?invoiceid=' . $get_invoice_id,
+  'success_callback' => $system_url . 'modules/gateways/callback/' . $gateway_module . '.php?invoiceid=' . $get_invoice_id,
   'success_redirect' => $params['returnurl'] . '&success=true',
   'failure_redirect' => $params['returnurl'],
   'cancel_redirect' => $params['returnurl'],
-  'creator_agent' => 'WHMCS: 1.6.1',
+  'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
   'reference' => $params['invoiceid'],
   'platform' => 'whmcs',
   'send_receipt' => $params['purchaseSendReceipt'] == 'on',
@@ -99,7 +106,6 @@ if (isset($params['paymentWhitelist']) and $params['paymentWhitelist'] == 'on') 
   $keys = array_keys($params);
   $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
-
   foreach ($result as $key) {
     if ($params[$key] == 'on') {
       $key_array = explode('__', $key);
@@ -112,13 +118,11 @@ if (isset($params['forceTokenization']) and $params['forceTokenization'] == 'on'
   $send_params['force_recurring'] = true;
 }
 
+logActivity("CHIP Redirect: Creating payment for Invoice #$get_invoice_id via $gateway_module");
+
 $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
 $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
-
-if (!is_array($get_client) || array_key_exists('__all__', $get_client)) {
-  throw new Exception('Failed to create purchase. Errors: ' . print_r($get_client, true));
-}
 
 if (!empty($get_client['results']) && is_array($get_client['results'])) {
   $client = $get_client['results'][0];
@@ -135,10 +139,14 @@ $send_params['client_id'] = $client['id'];
 
 $payment = $chip->create_payment($send_params);
 
-if (!is_array($payment) || !array_key_exists('id', $payment)) {
-  throw new Exception('Failed to create purchase. Errors: ' . print_r($payment, true));
+if (!is_array($payment) || !array_key_exists('checkout_url', $payment)) {
+  logActivity("CHIP Redirect: Failed to create payment for Invoice #$get_invoice_id. Response: " . json_encode($payment));
+  echo "Failed to create payment. Please contact administrator.";
+  exit;
 }
 
-Session::set('chip_' . $params['invoiceid'], $payment['id']);
+Session::set('chip_' . $get_invoice_id, $payment['id']);
+Session::set($gateway_module . '_' . $get_invoice_id, $payment['id']);
 
 header('Location: ' . $payment['checkout_url']);
+
