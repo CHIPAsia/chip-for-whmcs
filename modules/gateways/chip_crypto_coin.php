@@ -19,6 +19,7 @@ if (!defined("WHMCS")) {
 require_once __DIR__ . '/chip/api.php';
 require_once __DIR__ . '/chip/action.php';
 require_once __DIR__ . '/chip/helpers.php';
+require_once __DIR__ . '/chip/gateway.php';
 
 function chip_crypto_coin_MetaData()
 {
@@ -39,94 +40,54 @@ function chip_crypto_coin_config_validate(array $params)
 
 function chip_crypto_coin_link($params)
 {
-  if ($params['currency'] != 'MYR') {
-    $html = '<p>' . str_replace(':currency', $params['currency'], Lang::trans('This invoice is quoted in :currency, but CHIP only accepts payments in MYR.'));
-
-    if (ClientArea::isAdminMasqueradingAsClient()) {
-      $html .= "\n<br />" . Lang::trans("Administrators can enable 'Convert to For Processing' for MYR to allow this payment.");
-    }
-
-    return $html . '</p>';
-  }
-
-  if (empty($params['secretKey']) or empty($params['brandId'])) {
-    return '<p>Secret Key and Brand ID not set</p>';
-  }
-
-  if (isset($_GET['success']) && !empty(Session::get('chip_crypto_coin_' . $params['invoiceid']))) {
-    $payment_id = Session::getAndDelete('chip_crypto_coin_' . $params['invoiceid']);
-
-    if (\ChipAction::complete_payment($params, $payment_id)) {
-      return '<script>window.location.reload();</script>';
-    }
-  }
-
-  $html = '<p>'
-    . nl2br($params['paymentInformation'])
-    . '<br />'
-    . '<a href="' . $params['systemurl'] . 'modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '&gateway=chip_crypto_coin">'
-    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_crypto_coin/paywithcrypto.png" title="' . Lang::trans('Pay with Crypto Coin') . '">'
-    . '</a>'
-    . '<br />'
-    . Lang::trans('invoicerefnum')
-    . ': '
-    . $params['invoicenum']
-    . '</p>';
-
-  return $html;
+  return ChipGateway::link($params, 'chip_crypto_coin', 'paywithcrypto.png', 'Pay with Crypto Coin');
 }
 
 function chip_crypto_coin_refund($params)
 {
-  if ($params['currency'] != 'MYR') {
-    return array(
-      'status' => 'error',
-      'rawdata' => Lang::trans('Refund failed: Transaction currency must be MYR.'),
-      'transid' => $params['transid'],
-    );
-  }
-
-  if ($params['basecurrency'] != 'MYR') {
-    return array(
-      'status' => 'error',
-      'rawdata' => str_replace(':transid', $params['transid'], Lang::trans('Manual refund required: Automated refunds are only supported for MYR base currency. Please process the refund for Purchase ID :transid via the CHIP Dashboard.')),
-      'transid' => $params['transid'],
-    );
-  }
-
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
-
-  if (!is_array($result) || !array_key_exists('id', $result) or $result['status'] != 'success') {
-    return array(
-      'status' => 'error',
-      'rawdata' => json_encode($result),
-      'transid' => $params['transid'],
-    );
-  }
-
-  return array(
-    'status' => 'success',
-    'rawdata' => json_encode($result),
-    'transid' => $result['id'],
-    'fees' => $result['payment']['fee_amount'] / 100,
-  );
+  return ChipGateway::refund($params);
 }
 
 function chip_crypto_coin_account_balance($params)
 {
-  $balanceInfo = [];
+  return ChipGateway::account_balance($params);
+}
 
-  // Connect to gateway to retrieve balance information.
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $balanceData = $chip->account_balance();
+function chip_crypto_coin_TransactionInformation(array $params = []): Information
+{
+  return ChipGateway::transaction_information($params);
+}
 
-  foreach ($balanceData as $currency => $value) {
-    $balanceInfo[] = Balance::factory(
-      ($value['balance'] / 100),
-      $currency
-    );
-  }
+// $params = https://pastebin.com/vz16pSJV
+function chip_crypto_coin_capture($params)
+{
+  return ChipGateway::capture($params, 'chip_crypto_coin');
+}
 
-  return BalanceCollection::factory($balanceInfo);
+/**
+ * Log activity.
+ *
+ * @param string $message The message to log
+ * @param int $userId An optional user id to which the log entry relates
+ */
+// logActivity('Message goes here', 0);
+
+function chip_crypto_coin_nolocalcc()
+{
+  // this method must exists to hide card credit input displaying in checkout page
+}
+
+function chip_crypto_coin_storeremote($params)
+{
+  return ChipGateway::store_remote($params);
+}
+
+function chip_crypto_coin_adminstatusmsg($params)
+{
+  return false;
+}
+
+function chip_crypto_coin_deactivate()
+{
+  // remove database table. but make it remains commented
 }

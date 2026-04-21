@@ -19,6 +19,7 @@ if (!defined("WHMCS")) {
 require_once __DIR__ . '/chip/api.php';
 require_once __DIR__ . '/chip/action.php';
 require_once __DIR__ . '/chip/helpers.php';
+require_once __DIR__ . '/chip/gateway.php';
 
 function chip_cards_MetaData()
 {
@@ -41,199 +42,28 @@ function chip_cards_config_validate(array $params)
 
 function chip_cards_link($params)
 {
-  if ($params['currency'] != 'MYR') {
-    $html = '<p>' . str_replace(':currency', $params['currency'], Lang::trans('This invoice is quoted in :currency, but CHIP only accepts payments in MYR.'));
-
-    if (ClientArea::isAdminMasqueradingAsClient()) {
-      $html .= "\n<br />" . Lang::trans("Administrators can enable 'Convert to For Processing' for MYR to allow this payment.");
-    }
-
-    return $html . '</p>';
-  }
-
-  if (empty($params['secretKey']) or empty($params['brandId'])) {
-    return '<p>Secret Key and Brand ID not set</p>';
-  }
-
-  if (isset($_GET['success']) && !empty(Session::get('chip_cards_' . $params['invoiceid']))) {
-    $payment_id = Session::getAndDelete('chip_cards_' . $params['invoiceid']);
-
-    if (\ChipAction::complete_payment($params, $payment_id)) {
-      return '<script>window.location.reload();</script>';
-    }
-  }
-
-  $html = '<p>'
-    . nl2br($params['paymentInformation'])
-    . '<br />'
-    . '<a href="' . $params['systemurl'] . 'modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '&gateway=chip_cards">'
-    . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/chip_cards/paywithcard.png" title="' . Lang::trans('Pay with Visa / Mastercard') . '">'
-    . '</a>'
-    . '<br />'
-    . Lang::trans('invoicerefnum')
-    . ': '
-    . $params['invoicenum']
-    . '</p>';
-
-  return $html;
+  return ChipGateway::link($params, 'chip_cards', 'paywithcard.png', 'Pay with Visa / Mastercard');
 }
 
 function chip_cards_refund($params)
 {
-  if ($params['currency'] != 'MYR') {
-    return array(
-      'status' => 'error',
-      'rawdata' => Lang::trans('Refund failed: Transaction currency must be MYR.'),
-      'transid' => $params['transid'],
-    );
-  }
-
-  if ($params['basecurrency'] != 'MYR') {
-    return array(
-      'status' => 'error',
-      'rawdata' => str_replace(':transid', $params['transid'], Lang::trans('Manual refund required: Automated refunds are only supported for MYR base currency. Please process the refund for Purchase ID :transid via the CHIP Dashboard.')),
-      'transid' => $params['transid'],
-    );
-  }
-
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
-
-  if (!is_array($result) || !array_key_exists('id', $result) or $result['status'] != 'success') {
-    return array(
-      'status' => 'error',
-      'rawdata' => json_encode($result),
-      'transid' => $params['transid'],
-    );
-  }
-
-  return array(
-    'status' => 'success',
-    'rawdata' => json_encode($result),
-    'transid' => $result['id'],
-    'fees' => $result['payment']['fee_amount'] / 100,
-  );
+  return ChipGateway::refund($params);
 }
 
 function chip_cards_account_balance($params)
 {
-  $balanceInfo = [];
-
-  // Connect to gateway to retrieve balance information.
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $balanceData = $chip->account_balance();
-
-  foreach ($balanceData as $currency => $value) {
-    $balanceInfo[] = Balance::factory(
-      ($value['balance'] / 100),
-      $currency
-    );
-  }
-
-  //... splat operator. it will explode the array and send it as individual variable
-  return BalanceCollection::factoryFromItems(...$balanceInfo);
+  return ChipGateway::account_balance($params);
 }
 
 function chip_cards_TransactionInformation(array $params = []): Information
 {
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-  $payment = $chip->get_payment($params['transactionId']);
-  $information = new Information();
-
-  if (!is_array($payment) || array_key_exists('__all__', $payment)) {
-    return $information;
-  }
-
-  $payment_fee = 0;
-  foreach ($payment['transaction_data']['attempts'] as $attempt) {
-    if (in_array($attempt['type'], ['execute', 'recurring_execute']) and $attempt['successful'] and empty($attempt['error'])) {
-      $payment_fee = $attempt['fee_amount'];
-      break;
-    }
-  }
-
-  $currency = WHMCS\Billing\Currency::where("code", $payment['payment']['currency'])->firstOrFail();
-
-  return $information
-    ->setTransactionId($payment['id'])
-    ->setAmount($payment['payment']['amount'] / 100, $currency)
-    ->setCurrency($currency)
-    ->setFeeCurrency($currency)
-    ->setMerchantCurrency($currency)
-    ->setMerchantAmount(($payment['payment']['amount'] - $payment_fee) / 100, $currency)
-    ->setType($payment['type'])
-    ->setAdditionalDatum('chip_paid_on', Carbon::createFromTimestampUTC($payment['payment']['paid_on'])->setTimezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i'))
-    ->setCreated(Carbon::createFromTimestampUTC($payment['created_on'])->setTimezone('Asia/Kuala_Lumpur'))
-    ->setDescription($payment['payment']['description'])
-    ->setFee($payment_fee / 100)
-    ->setStatus($payment['status']);
+  return ChipGateway::transaction_information($params);
 }
 
 // $params = https://pastebin.com/vz16pSJV
 function chip_cards_capture($params)
 {
-  if ($params['currency'] != 'MYR') {
-    return array("status" => "declined", 'declinereason' => 'Unsupported currency');
-  }
-
-  $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-
-  $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
-  $client = $get_client['results'][0];
-
-  $system_url = $params['systemurl'];
-
-  if ($params['systemUrlHttps'] == 'https') {
-    $system_url = preg_replace("/^http:/i", "https:", $system_url);
-  }
-
-  $purchase_params = array(
-    'success_callback' => $system_url . 'modules/gateways/callback/chip_cards.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
-    'reference' => $params['invoiceid'],
-    'client_id' => $client['id'],
-    'platform' => 'whmcs',
-    'send_receipt' => $params['purchaseSendReceipt'] == 'on',
-    'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
-    'brand_id' => $params['brandId'],
-    'purchase' => array(
-      'timezone' => $params['purchaseTimeZone'],
-      'currency' => $params['currency'],
-      'due_strict' => $params['dueStrict'] == 'on',
-      'products' => array(
-        [
-          'name' => substr($params['description'], 0, 256),
-          'price' => round($params['amount'] * 100),
-        ]
-      ),
-    ),
-  );
-
-  $create_payment = $chip->create_payment($purchase_params);
-
-  $charge_payment = $chip->charge_payment($create_payment['id'], array('recurring_token' => $params["gatewayid"]));
-
-  $payment_id = $create_payment['id'];
-
-  // this to prevent from callback being run in 10 seconds from now
-  Capsule::select("SELECT GET_LOCK('chip_cards_payment_$payment_id', 10);");
-
-  $account = Capsule::table('tblaccounts')
-    ->where('transid', $payment_id)
-    ->take(1)
-    ->first();
-
-  if ($account) {
-    return 'success';
-  }
-
-  if ($charge_payment['status'] == 'paid') {
-    return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100);
-  } elseif ($charge_payment['status'] == 'pending_charge') {
-    return array("status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
-  }
-
-  return array("status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
+  return ChipGateway::capture($params, 'chip_cards');
 }
 
 /**
@@ -251,19 +81,7 @@ function chip_cards_nolocalcc()
 
 function chip_cards_storeremote($params)
 {
-  $action = $params['action'];
-  $token = $params['gatewayid'];
-
-  switch ($action) {
-    case 'delete':
-      $chip = \ChipAPI::get_instance($params['secretKey'], '');
-      $chip->delete_token($token);
-      break;
-  }
-
-  return [
-    'status' => 'success',
-  ];
+  return ChipGateway::store_remote($params);
 }
 
 function chip_cards_adminstatusmsg($params)
