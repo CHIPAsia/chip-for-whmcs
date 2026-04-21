@@ -41,11 +41,20 @@ class ChipHelpers
             $default = 'yes';
           }
 
+          $friendly_apm = str_replace('_', ' ', $apm);
+          $friendly_apm = ucwords($friendly_apm);
+          $friendly_apm = str_replace(['Fpx', 'B2b1', 'Qr'], ['FPX', 'B2B1', 'QR'], $friendly_apm);
+
+          $description = 'Tick to enable ' . $friendly_apm;
+          if ($default == 'yes') {
+            $description .= ' (Default)';
+          }
+
           $available_payment_method['payment_method_whitelist__' . $apm] = array(
-            'FriendlyName' => 'Whitelist ' . ucfirst($apm),
+            'FriendlyName' => 'Whitelist ' . $friendly_apm,
             'Type' => 'yesno',
             'Default' => $default,
-            'Description' => 'Tick to enable ' . ucfirst($apm),
+            'Description' => $description,
           );
         }
         $show_whitelist_option = true;
