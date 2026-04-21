@@ -1,10 +1,15 @@
 == Changelog ==
 
-= 1.6.1 2026-04-13 =
+= 1.7.0 2026-04-21 =
 * Added - CHIP Crypto Coin payment method
-* Refactor - Consolidate gateway logic into shared ChipAction class
+* Refactor - Consolidate gateway logic into shared ChipAction and ChipHelpers classes
+* Refactor - Consolidate configuration functions across all gateway modules
 * Improved - Payment completion logic with database transactions and better lock handling
 * Improved - Dynamic gateway factory and email template selection
+* Cleanup - Removed redundant logo assets and legacy webhook files
+* CI/CD - Added automated build and release workflows for WHMCS distribution
+* CI/CD - Added automated PR summary generation
+* CI/CD - Updated GitHub Actions to latest major versions
 
 = 1.6.0 2025-07-17 =
 * Improved - All uses of array_key_exists now safely check is_array to prevent errors

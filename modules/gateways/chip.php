@@ -231,7 +231,7 @@ function chip_capture($params)
 
   $purchase_params = array(
     'success_callback' => $system_url . 'modules/gateways/callback/chip.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-    'creator_agent' => 'WHMCS: 1.6.1',
+    'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
     'reference' => $params['invoiceid'],
     'client_id' => $client['id'],
     'platform' => 'whmcs',
