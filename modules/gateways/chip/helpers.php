@@ -48,7 +48,7 @@ class ChipHelpers
           $friendly_apm = str_replace('_', ' ', $apm);
           $friendly_apm = ucwords($friendly_apm);
           $friendly_apm = str_replace(['Fpx', 'B2b1', 'Qr'], ['FPX', 'B2B1', 'QR'], $friendly_apm);
-          $friendly_apm = str_replace('Razer ', '', $friendly_apm);
+          $friendly_apm = str_replace(['Razer ', 'Mpgs '], '', $friendly_apm);
 
           $description = 'Tick to enable ' . $friendly_apm;
           if ($default == 'yes') {
