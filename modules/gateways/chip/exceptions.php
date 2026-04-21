@@ -6,7 +6,7 @@ class ChipAPIException extends Exception
 {
   protected $response;
 
-  public function __construct($message, $code = 0, $response = null, Throwable $previous = null)
+  public function __construct($message, $code = 0, $response = null, ?Throwable $previous = null)
   {
     $this->response = $response;
     parent::__construct($message, $code, $previous);
