@@ -206,7 +206,7 @@ class ChipGateway
 
     $payment_id = $create_payment['id'];
 
-    Capsule::select("SELECT GET_LOCK('" . $gateway_name . "_payment_$payment_id', 10);");
+    Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 10);");
 
     $account = Capsule::table('tblaccounts')
       ->where('transid', $payment_id)
@@ -241,5 +241,56 @@ class ChipGateway
     return [
       'status' => 'success',
     ];
+  }
+
+  public static function callback($gateway_name)
+  {
+    require_once __DIR__ . '/api.php';
+    require_once __DIR__ . '/action.php';
+    require_once __DIR__ . '/../../../init.php';
+    
+    App::load_function('gateway');
+    App::load_function('invoice');
+
+    if (!isset($_GET['invoiceid'])) {
+      die('No invoiceid parameter is set');
+    }
+
+    if (empty($content = file_get_contents('php://input'))) {
+      die('No input received');
+    }
+
+    if (!isset($_SERVER['HTTP_X_SIGNATURE'])) {
+      die('No X Signature received from headers');
+    }
+
+    $get_invoice_id = filter_var($_GET['invoiceid'], FILTER_VALIDATE_INT);
+    if (!$get_invoice_id || $get_invoice_id <= 0) {
+      die('Invalid invoice ID');
+    }
+
+    $gatewayParams = getGatewayVariables($gateway_name);
+
+    if (!$gatewayParams['type']) {
+      die('Module Not Activated');
+    }
+
+    $invoice = new \WHMCS\Invoice($get_invoice_id);
+    $params = $invoice->getGatewayInvoiceParams();
+
+    if (\openssl_verify($content, \base64_decode($_SERVER['HTTP_X_SIGNATURE']), \ChipAction::retrieve_public_key($params), 'sha256WithRSAEncryption') != 1) {
+      \header('Forbidden', true, 403);
+      die('Invalid X Signature');
+    }
+
+    $payment = \json_decode($content, true);
+
+    if ($payment['status'] != 'paid') {
+      die('Status is not paid');
+    }
+
+    \ChipAction::complete_payment($params, $payment);
+
+    echo 'Done';
   }
 }
