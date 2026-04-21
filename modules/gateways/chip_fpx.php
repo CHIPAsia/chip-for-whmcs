@@ -42,10 +42,10 @@ function chip_fpx_config_validate(array $params)
 function chip_fpx_link($params)
 {
   if ($params['currency'] != 'MYR') {
-    $html = '<p>The invoice was quoted in ' . $params['currency'] . ' and CHIP only accept payment in MYR.';
+    $html = '<p>' . str_replace(':currency', $params['currency'], Lang::trans('This invoice is quoted in :currency, but CHIP only accepts payments in MYR.'));
 
     if (ClientArea::isAdminMasqueradingAsClient()) {
-      $html .= "\nAdministrator can set convert to processing MYR to enable the payment.";
+      $html .= "\n<br />" . Lang::trans("Administrators can enable 'Convert to For Processing' for MYR to allow this payment.");
     }
 
     return $html . '</p>';
@@ -83,7 +83,7 @@ function chip_fpx_refund($params)
   if ($params['currency'] != 'MYR') {
     return array(
       'status' => 'error',
-      'rawdata' => 'Currency is not MYR!',
+      'rawdata' => Lang::trans('Refund failed: Transaction currency must be MYR.'),
       'transid' => $params['transid'],
     );
   }
@@ -91,7 +91,7 @@ function chip_fpx_refund($params)
   if ($params['basecurrency'] != 'MYR') {
     return array(
       'status' => 'error',
-      'rawdata' => 'Refund for Purchase ID ' . $params['transid'] . ' needs to be done through CHIP Dashboard.',
+      'rawdata' => str_replace(':transid', $params['transid'], Lang::trans('Manual refund required: Automated refunds are only supported for MYR base currency. Please process the refund for Purchase ID :transid via the CHIP Dashboard.')),
       'transid' => $params['transid'],
     );
   }
