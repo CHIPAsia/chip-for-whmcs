@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 if (!defined('CHIP_MODULE_VERSION')) {
   define('CHIP_MODULE_VERSION', '1.7.0');
 }
+
+require_once __DIR__ . '/exceptions.php';
 
 class ChipAPI
 {
@@ -12,7 +16,7 @@ class ChipAPI
   private $private_key;
   private $client;
 
-  public static function get_instance($secret_key, $brand_id)
+  public static function get_instance(string $secret_key, string $brand_id): self
   {
     if (self::$_instance == null) {
       self::$_instance = new self($secret_key, $brand_id);
@@ -21,7 +25,7 @@ class ChipAPI
     return self::$_instance;
   }
 
-  public function __construct($private_key, $brand_id)
+  public function __construct(string $private_key, string $brand_id)
   {
     $this->private_key = $private_key;
     $this->brand_id = $brand_id;
@@ -31,21 +35,21 @@ class ChipAPI
         'Content-type' => 'application/json',
         'Authorization' => 'Bearer ' . $this->private_key,
       ],
-      'timeout' => 30,
+      'timeout' => 10,
     ]);
   }
 
-  public function create_payment($params)
+  public function create_payment(array $params): ?array
   {
     return $this->call('POST', 'purchases/', $params);
   }
 
-  public function charge_payment($payment_id, $params)
+  public function charge_payment(string $payment_id, array $params): ?array
   {
     return $this->call('POST', "purchases/{$payment_id}/charge/", $params);
   }
 
-  public function payment_methods($currency)
+  public function payment_methods(string $currency): ?array
   {
     return $this->call(
       'GET',
@@ -58,7 +62,7 @@ class ChipAPI
     );
   }
 
-  public function payment_recurring_methods($currency)
+  public function payment_recurring_methods(string $currency): ?array
   {
     return $this->call(
       'GET',
@@ -72,47 +76,47 @@ class ChipAPI
     );
   }
 
-  public function get_payment($payment_id)
+  public function get_payment(string $payment_id): ?array
   {
     return $this->call('GET', "purchases/{$payment_id}/");
   }
 
-  public function create_client($params)
+  public function create_client(array $params): ?array
   {
     return $this->call('POST', "clients/", $params);
   }
 
-  public function get_client_by_email($email)
+  public function get_client_by_email(string $email): ?array
   {
     return $this->call('GET', "clients/", ['q' => $email]);
   }
 
-  public function patch_client($client_id, $params)
+  public function patch_client(string $client_id, array $params): ?array
   {
     return $this->call('PATCH', "clients/{$client_id}/", $params);
   }
 
-  public function delete_token($purchase_id)
+  public function delete_token(string $purchase_id): ?array
   {
     return $this->call('POST', "purchases/$purchase_id/delete_recurring_token/");
   }
 
-  public function refund_payment($payment_id, $params)
+  public function refund_payment(string $payment_id, array $params): ?array
   {
     return $this->call('POST', "purchases/{$payment_id}/refund/", $params);
   }
 
-  public function public_key()
+  public function public_key(): ?string
   {
     return $this->call('GET', "public_key/");
   }
 
-  public function account_balance()
+  public function account_balance(): ?array
   {
     return $this->call('GET', 'account/json/balance/', ['brand_id' => $this->brand_id]);
   }
 
-  private function call($method, $route, $params = [])
+  private function call(string $method, string $route, array $params = [])
   {
     try {
       $options = [];
@@ -125,16 +129,39 @@ class ChipAPI
       }
 
       $response = $this->client->request($method, $route, $options);
-      $result = json_decode($response->getBody()->getContents(), true);
+      $body = $response->getBody()->getContents();
+      
+      if ($route === 'public_key/') {
+        return $body;
+      }
 
-      if (!$result || !empty($result['errors'])) {
-        return null;
+      $result = json_decode($body, true);
+
+      if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new ChipAPIException('Invalid JSON response from CHIP API');
+      }
+
+      if (!empty($result['errors'])) {
+        throw new ChipAPIException('CHIP API Error: ' . json_encode($result['errors']), $response->getStatusCode(), $result);
       }
 
       return $result;
+    } catch (\GuzzleHttp\Exception\ClientException $e) {
+      $response = $e->getResponse();
+      $statusCode = $response->getStatusCode();
+      $body = $response->getBody()->getContents();
+      $result = json_decode($body, true);
+
+      if ($statusCode === 401) {
+        throw new ChipAPIException('Invalid API Key or Unauthorized access', 401, $result, $e);
+      } elseif ($statusCode === 404) {
+        throw new ChipAPIException('Resource not found', 404, $result, $e);
+      }
+
+      throw new ChipAPIException('CHIP API Client Error: ' . $e->getMessage(), $statusCode, $result, $e);
     } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-      logActivity('CHIP API Error: ' . $e->getMessage());
-      return null;
+      logActivity('CHIP API Network Error: ' . $e->getMessage());
+      throw new ChipAPIException('CHIP API Network Error: ' . $e->getMessage(), 0, null, $e);
     }
   }
 }

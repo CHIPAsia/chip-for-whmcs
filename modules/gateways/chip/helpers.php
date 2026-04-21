@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use WHMCS\Database\Capsule;
 
 class ChipHelpers
@@ -17,85 +19,89 @@ class ChipHelpers
     $available_payment_method = array();
 
     if (!empty($params['secretKey']) && !empty($params['brandId'])) {
-      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-      
-      // For specific gateways, we might want to filter or default whitelists
-      $result = $chip->payment_methods('MYR');
+      try {
+        $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+        
+        // For specific gateways, we might want to filter or default whitelists
+        $result = $chip->payment_methods('MYR');
 
-      if (is_array($result) && array_key_exists('available_payment_methods', $result) && !empty($result['available_payment_methods'])) {
-        $categories = [
-          'Cards' => ['visa', 'mastercard', 'maestro', 'mpgs_apple_pay', 'mpgs_google_pay'],
-          'FPX' => ['fpx', 'fpx_b2b1'],
-          'E-Wallets & QR' => ['razer_atome', 'razer_grabpay', 'razer_maybankqr', 'razer_shopeepay', 'razer_tng', 'duitnow_qr', 'dnqr'],
-          'Crypto' => ['crypto_coin']
-        ];
+        if (is_array($result) && array_key_exists('available_payment_methods', $result) && !empty($result['available_payment_methods'])) {
+          $categories = [
+            'Cards' => ['visa', 'mastercard', 'maestro', 'mpgs_apple_pay', 'mpgs_google_pay'],
+            'FPX' => ['fpx', 'fpx_b2b1'],
+            'E-Wallets & QR' => ['razer_atome', 'razer_grabpay', 'razer_maybankqr', 'razer_shopeepay', 'razer_tng', 'duitnow_qr', 'dnqr'],
+            'Crypto' => ['crypto_coin']
+          ];
 
-        $methods_by_category = [];
-        foreach ($result['available_payment_methods'] as $apm) {
-          if ($apm == 'razer') {
-            continue;
+          $methods_by_category = [];
+          foreach ($result['available_payment_methods'] as $apm) {
+            if ($apm == 'razer') {
+              continue;
+            }
+
+            $found_cat = 'Others';
+            foreach ($categories as $cat => $members) {
+              if (in_array($apm, $members)) {
+                $found_cat = $cat;
+                break;
+              }
+            }
+            $methods_by_category[$found_cat][] = $apm;
           }
 
-          $found_cat = 'Others';
-          foreach ($categories as $cat => $members) {
-            if (in_array($apm, $members)) {
-              $found_cat = $cat;
-              break;
+          foreach ($methods_by_category as $category => $apms) {
+            $is_first_in_cat = true;
+            foreach ($apms as $apm) {
+              $default = 'no';
+              
+              // Logic for specific gateway defaults
+              if ($gateway_name == 'chip_cards' && in_array($apm, ['maestro', 'mastercard', 'visa'])) {
+                $default = 'yes';
+              } elseif ($gateway_name == 'chip_fpx' && $apm == 'fpx') {
+                $default = 'yes';
+              } elseif ($gateway_name == 'chip_fpxb2b1' && $apm == 'fpx_b2b1') {
+                $default = 'yes';
+              } elseif ($gateway_name == 'chip_dnqr' && $apm == 'duitnow_qr') {
+                $default = 'yes';
+              } elseif ($gateway_name == 'chip_ewallets' && in_array($apm, ['razer_atome', 'razer_grabpay', 'razer_maybankqr', 'razer_shopeepay', 'razer_tng'])) {
+                $default = 'yes';
+              } elseif ($gateway_name == 'chip_crypto_coin' && $apm == 'crypto_coin') {
+                $default = 'yes';
+              }
+
+              $friendly_apm = str_replace('_', ' ', $apm);
+              $friendly_apm = ucwords($friendly_apm);
+              $friendly_apm = str_replace(['Fpx', 'B2b1', 'Qr'], ['FPX', 'B2B1', 'QR'], $friendly_apm);
+              $friendly_apm = str_replace(['Razer ', 'Mpgs '], '', $friendly_apm);
+
+              $description = 'Tick to enable ' . $friendly_apm;
+              if ($default == 'yes') {
+                $description .= ' (Default)';
+              }
+
+              $friendly_name_label = 'Whitelist ' . $friendly_apm;
+              if ($is_first_in_cat) {
+                $friendly_name_label = '<b>[' . strtoupper($category) . ']</b><br/>' . $friendly_name_label;
+                $is_first_in_cat = false;
+              }
+
+              $available_payment_method['payment_method_whitelist__' . $apm] = array(
+                'FriendlyName' => $friendly_name_label,
+                'Type' => 'yesno',
+                'Default' => $default,
+                'Description' => $description,
+              );
             }
           }
-          $methods_by_category[$found_cat][] = $apm;
+          $show_whitelist_option = true;
         }
 
-        foreach ($methods_by_category as $category => $apms) {
-          $is_first_in_cat = true;
-          foreach ($apms as $apm) {
-            $default = 'no';
-            
-            // Logic for specific gateway defaults
-            if ($gateway_name == 'chip_cards' && in_array($apm, ['maestro', 'mastercard', 'visa'])) {
-              $default = 'yes';
-            } elseif ($gateway_name == 'chip_fpx' && $apm == 'fpx') {
-              $default = 'yes';
-            } elseif ($gateway_name == 'chip_fpxb2b1' && $apm == 'fpx_b2b1') {
-              $default = 'yes';
-            } elseif ($gateway_name == 'chip_dnqr' && $apm == 'duitnow_qr') {
-              $default = 'yes';
-            } elseif ($gateway_name == 'chip_ewallets' && in_array($apm, ['razer_atome', 'razer_grabpay', 'razer_maybankqr', 'razer_shopeepay', 'razer_tng'])) {
-              $default = 'yes';
-            } elseif ($gateway_name == 'chip_crypto_coin' && $apm == 'crypto_coin') {
-              $default = 'yes';
-            }
-
-            $friendly_apm = str_replace('_', ' ', $apm);
-            $friendly_apm = ucwords($friendly_apm);
-            $friendly_apm = str_replace(['Fpx', 'B2b1', 'Qr'], ['FPX', 'B2B1', 'QR'], $friendly_apm);
-            $friendly_apm = str_replace(['Razer ', 'Mpgs '], '', $friendly_apm);
-
-            $description = 'Tick to enable ' . $friendly_apm;
-            if ($default == 'yes') {
-              $description .= ' (Default)';
-            }
-
-            $friendly_name_label = 'Whitelist ' . $friendly_apm;
-            if ($is_first_in_cat) {
-              $friendly_name_label = '<b>[' . strtoupper($category) . ']</b><br/>' . $friendly_name_label;
-              $is_first_in_cat = false;
-            }
-
-            $available_payment_method['payment_method_whitelist__' . $apm] = array(
-              'FriendlyName' => $friendly_name_label,
-              'Type' => 'yesno',
-              'Default' => $default,
-              'Description' => $description,
-            );
-          }
+        $recurring_result = $chip->payment_recurring_methods('MYR');
+        if (is_array($recurring_result) && array_key_exists('available_payment_methods', $recurring_result) && !empty($recurring_result['available_payment_methods'])) {
+          $show_force_token_option = true;
         }
-        $show_whitelist_option = true;
-      }
-
-      $recurring_result = $chip->payment_recurring_methods('MYR');
-      if (is_array($recurring_result) && array_key_exists('available_payment_methods', $recurring_result) && !empty($recurring_result['available_payment_methods'])) {
-        $show_force_token_option = true;
+      } catch (Exception $e) {
+        logActivity('CHIP Config Error: ' . $e->getMessage());
       }
     }
 

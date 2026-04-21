@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use WHMCS\ClientArea;
 use WHMCS\Session;
 use WHMCS\Module\Gateway\Balance;
@@ -90,37 +92,51 @@ class ChipGateway
       );
     }
 
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-    $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
+    try {
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+      $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
 
-    if (!is_array($result) || !array_key_exists('id', $result) or $result['status'] != 'success') {
+      if (!is_array($result) || !array_key_exists('id', $result) or $result['status'] != 'success') {
+        return array(
+          'status' => 'error',
+          'rawdata' => json_encode($result),
+          'transid' => $params['transid'],
+        );
+      }
+
+      return array(
+        'status' => 'success',
+        'rawdata' => json_encode($result),
+        'transid' => $result['id'],
+        'fees' => $result['payment']['fee_amount'] / 100,
+      );
+    } catch (Exception $e) {
       return array(
         'status' => 'error',
-        'rawdata' => json_encode($result),
+        'rawdata' => $e->getMessage(),
         'transid' => $params['transid'],
       );
     }
-
-    return array(
-      'status' => 'success',
-      'rawdata' => json_encode($result),
-      'transid' => $result['id'],
-      'fees' => $result['payment']['fee_amount'] / 100,
-    );
   }
 
   public static function account_balance($params)
   {
     $balanceInfo = [];
 
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-    $balanceData = $chip->account_balance();
+    try {
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+      $balanceData = $chip->account_balance();
 
-    foreach ($balanceData as $currency => $value) {
-      $balanceInfo[] = Balance::factory(
-        ($value['balance'] / 100),
-        $currency
-      );
+      if (is_array($balanceData)) {
+        foreach ($balanceData as $currency => $value) {
+          $balanceInfo[] = Balance::factory(
+            ($value['balance'] / 100),
+            $currency
+          );
+        }
+      }
+    } catch (Exception $e) {
+      logActivity('CHIP Balance Error: ' . $e->getMessage());
     }
 
     return BalanceCollection::factoryFromItems(...$balanceInfo);
@@ -128,37 +144,43 @@ class ChipGateway
 
   public static function transaction_information(array $params = []): Information
   {
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-    $payment = $chip->get_payment($params['transactionId']);
     $information = new Information();
 
-    if (!is_array($payment) || array_key_exists('__all__', $payment)) {
+    try {
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+      $payment = $chip->get_payment($params['transactionId']);
+
+      if (!is_array($payment) || array_key_exists('__all__', $payment)) {
+        return $information;
+      }
+
+      $payment_fee = 0;
+      foreach ($payment['transaction_data']['attempts'] as $attempt) {
+        if (in_array($attempt['type'], ['execute', 'recurring_execute']) and $attempt['successful'] and empty($attempt['error'])) {
+          $payment_fee = $attempt['fee_amount'];
+          break;
+        }
+      }
+
+      $currency = \WHMCS\Billing\Currency::where("code", $payment['payment']['currency'])->firstOrFail();
+
+      return $information
+        ->setTransactionId($payment['id'])
+        ->setAmount($payment['payment']['amount'] / 100, $currency)
+        ->setCurrency($currency)
+        ->setFeeCurrency($currency)
+        ->setMerchantCurrency($currency)
+        ->setMerchantAmount(($payment['payment']['amount'] - $payment_fee) / 100, $currency)
+        ->setType($payment['type'])
+        ->setAdditionalDatum('chip_paid_on', Carbon::createFromTimestampUTC($payment['payment']['paid_on'])->setTimezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i'))
+        ->setCreated(Carbon::createFromTimestampUTC($payment['created_on'])->setTimezone('Asia/Kuala_Lumpur'))
+        ->setDescription($payment['payment']['description'])
+        ->setFee($payment_fee / 100)
+        ->setStatus($payment['status']);
+    } catch (Exception $e) {
+      logActivity('CHIP Transaction Info Error: ' . $e->getMessage());
       return $information;
     }
-
-    $payment_fee = 0;
-    foreach ($payment['transaction_data']['attempts'] as $attempt) {
-      if (in_array($attempt['type'], ['execute', 'recurring_execute']) and $attempt['successful'] and empty($attempt['error'])) {
-        $payment_fee = $attempt['fee_amount'];
-        break;
-      }
-    }
-
-    $currency = WHMCS\Billing\Currency::where("code", $payment['payment']['currency'])->firstOrFail();
-
-    return $information
-      ->setTransactionId($payment['id'])
-      ->setAmount($payment['payment']['amount'] / 100, $currency)
-      ->setCurrency($currency)
-      ->setFeeCurrency($currency)
-      ->setMerchantCurrency($currency)
-      ->setMerchantAmount(($payment['payment']['amount'] - $payment_fee) / 100, $currency)
-      ->setType($payment['type'])
-      ->setAdditionalDatum('chip_paid_on', Carbon::createFromTimestampUTC($payment['payment']['paid_on'])->setTimezone('Asia/Kuala_Lumpur')->format('d/m/Y H:i'))
-      ->setCreated(Carbon::createFromTimestampUTC($payment['created_on'])->setTimezone('Asia/Kuala_Lumpur'))
-      ->setDescription($payment['payment']['description'])
-      ->setFee($payment_fee / 100)
-      ->setStatus($payment['status']);
   }
 
   public static function capture($params, $gateway_name)
@@ -167,63 +189,68 @@ class ChipGateway
       return array("status" => "declined", 'declinereason' => 'Unsupported currency');
     }
 
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+    try {
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
-    $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
-    $client = $get_client['results'][0];
+      $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
+      $client = $get_client['results'][0];
 
-    $system_url = $params['systemurl'];
+      $system_url = $params['systemurl'];
 
-    if ($params['systemUrlHttps'] == 'https') {
-      $system_url = preg_replace("/^http:/i", "https:", $system_url);
-    }
+      if ($params['systemUrlHttps'] == 'https') {
+        $system_url = preg_replace("/^http:/i", "https:", $system_url);
+      }
 
-    $purchase_params = array(
-      'success_callback' => $system_url . 'modules/gateways/callback/' . $gateway_name . '.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
-      'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
-      'reference' => $params['invoiceid'],
-      'client_id' => $client['id'],
-      'platform' => 'whmcs',
-      'send_receipt' => $params['purchaseSendReceipt'] == 'on',
-      'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
-      'brand_id' => $params['brandId'],
-      'purchase' => array(
-        'timezone' => $params['purchaseTimeZone'],
-        'currency' => $params['currency'],
-        'due_strict' => $params['dueStrict'] == 'on',
-        'products' => array(
-          [
-            'name' => substr($params['description'], 0, 256),
-            'price' => round($params['amount'] * 100),
-          ]
+      $purchase_params = array(
+        'success_callback' => $system_url . 'modules/gateways/callback/' . $gateway_name . '.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
+        'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
+        'reference' => $params['invoiceid'],
+        'client_id' => $client['id'],
+        'platform' => 'whmcs',
+        'send_receipt' => $params['purchaseSendReceipt'] == 'on',
+        'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
+        'brand_id' => $params['brandId'],
+        'purchase' => array(
+          'timezone' => $params['purchaseTimeZone'],
+          'currency' => $params['currency'],
+          'due_strict' => $params['dueStrict'] == 'on',
+          'products' => array(
+            [
+              'name' => substr($params['description'], 0, 256),
+              'price' => round($params['amount'] * 100),
+            ]
+          ),
         ),
-      ),
-    );
+      );
 
-    $create_payment = $chip->create_payment($purchase_params);
+      $create_payment = $chip->create_payment($purchase_params);
 
-    $charge_payment = $chip->charge_payment($create_payment['id'], array('recurring_token' => $params["gatewayid"]));
+      $charge_payment = $chip->charge_payment($create_payment['id'], array('recurring_token' => $params["gatewayid"]));
 
-    $payment_id = $create_payment['id'];
+      $payment_id = $create_payment['id'];
 
-    Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 10);");
+      Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 10);");
 
-    $account = Capsule::table('tblaccounts')
-      ->where('transid', $payment_id)
-      ->take(1)
-      ->first();
+      $account = Capsule::table('tblaccounts')
+        ->where('transid', $payment_id)
+        ->take(1)
+        ->first();
 
-    if ($account) {
-      return 'success';
+      if ($account) {
+        return 'success';
+      }
+
+      if ($charge_payment['status'] == 'paid') {
+        return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100);
+      } elseif ($charge_payment['status'] == 'pending_charge') {
+        return array("status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
+      }
+
+      return array("status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
+    } catch (Exception $e) {
+      logActivity('CHIP Capture Error: ' . $e->getMessage());
+      return array("status" => "declined", "declinereason" => $e->getMessage());
     }
-
-    if ($charge_payment['status'] == 'paid') {
-      return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100);
-    } elseif ($charge_payment['status'] == 'pending_charge') {
-      return array("status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
-    }
-
-    return array("status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
   }
 
   public static function store_remote($params)
@@ -233,8 +260,12 @@ class ChipGateway
 
     switch ($action) {
       case 'delete':
-        $chip = \ChipAPI::get_instance($params['secretKey'], '');
-        $chip->delete_token($token);
+        try {
+          $chip = \ChipAPI::get_instance($params['secretKey'], '');
+          $chip->delete_token($token);
+        } catch (Exception $e) {
+          logActivity('CHIP Delete Token Error: ' . $e->getMessage());
+        }
         break;
     }
 
@@ -410,34 +441,41 @@ class ChipGateway
 
     logActivity("CHIP Redirect: Creating payment for Invoice #$get_invoice_id via $gateway_module");
 
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+    try {
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
-    $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
+      $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
 
-    if (!empty($get_client['results']) && is_array($get_client['results'])) {
-      $client = $get_client['results'][0];
+      if (!empty($get_client['results']) && is_array($get_client['results'])) {
+        $client = $get_client['results'][0];
 
-      if ($params['updateClientInfo'] == 'on') {
-        $chip->patch_client($client['id'], $send_params['client']);
+        if ($params['updateClientInfo'] == 'on') {
+          $chip->patch_client($client['id'], $send_params['client']);
+        }
+      } else {
+        $client = $chip->create_client($send_params['client']);
       }
-    } else {
-      $client = $chip->create_client($send_params['client']);
-    }
 
-    unset($send_params['client']);
-    $send_params['client_id'] = $client['id'];
+      unset($send_params['client']);
+      $send_params['client_id'] = $client['id'];
 
-    $payment = $chip->create_payment($send_params);
+      $payment = $chip->create_payment($send_params);
 
-    if (!is_array($payment) || !array_key_exists('checkout_url', $payment)) {
-      logActivity("CHIP Redirect: Failed to create payment for Invoice #$get_invoice_id. Response: " . json_encode($payment));
-      echo "Failed to create payment. Please contact administrator.";
+      if (!is_array($payment) || !array_key_exists('checkout_url', $payment)) {
+        logActivity("CHIP Redirect: Failed to create payment for Invoice #$get_invoice_id. Response: " . json_encode($payment));
+        echo "Failed to create payment. Please contact administrator.";
+        exit;
+      }
+
+      \WHMCS\Session::set('chip_' . $get_invoice_id, $payment['id']);
+      \WHMCS\Session::set($gateway_module . '_' . $get_invoice_id, $payment['id']);
+
+      header('Location: ' . $payment['checkout_url']);
+    } catch (Exception $e) {
+      logActivity("CHIP Redirect Error for Invoice #$get_invoice_id: " . $e->getMessage());
+      echo "An error occurred while initiating payment. Please try again later.";
       exit;
     }
-
-    \WHMCS\Session::set('chip_' . $get_invoice_id, $payment['id']);
-    \WHMCS\Session::set($gateway_module . '_' . $get_invoice_id, $payment['id']);
-
-    header('Location: ' . $payment['checkout_url']);
+  }
   }
 }

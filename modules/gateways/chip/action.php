@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use WHMCS\Database\Capsule;
 use WHMCS\User\Client;
 use WHMCS\Billing\Invoice;
@@ -16,9 +18,14 @@ class ChipAction
     if (\is_array($payment)) { // success callback
       $payment_id = $payment['id'];
     } elseif (\is_string($payment)) { // success redirect
-      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-      $payment_id = $payment;
-      $payment = $chip->get_payment($payment);
+      try {
+        $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+        $payment_id = $payment;
+        $payment = $chip->get_payment($payment);
+      } catch (Exception $e) {
+        logActivity('CHIP Complete Payment Error: ' . $e->getMessage());
+        return false;
+      }
     } else {
       return false;
     }
@@ -135,12 +142,17 @@ class ChipAction
       return $public_key;
     }
 
-    $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-    $public_key = \str_replace('\n', "\n", $chip->public_key());
+    try {
+      $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
+      $public_key = \str_replace('\n', "\n", $chip->public_key());
 
-    WHMCSSetting::setValue("CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key);
+      WHMCSSetting::setValue("CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key);
 
-    return $public_key;
+      return $public_key;
+    } catch (Exception $e) {
+      logActivity('CHIP Public Key Error: ' . $e->getMessage());
+      return '';
+    }
   }
 
   public static function clean_up_public_key()
