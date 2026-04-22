@@ -23,49 +23,47 @@ require_once __DIR__ . '/chip/action.php';
 require_once __DIR__ . '/chip/helpers.php';
 require_once __DIR__ . '/chip/gateway.php';
 
-function chip_fpx_MetaData()
+function chip_crypto_coin_MetaData()
 {
   return array(
-    'DisplayName' => 'CHIP FPX',
+    'DisplayName' => 'CHIP Crypto Coin',
     'APIVersion' => '1.1',
-    // Commented to allow Convert to for Processing
-    // 'supportedCurrencies' => array('MYR')
   );
 }
 
-function chip_fpx_config($params = array())
+function chip_crypto_coin_config($params = array())
 {
-  return ChipHelpers::get_config_params('chip_fpx', 'FPX (Online Banking)', $params);
+  return ChipHelpers::get_config_params('chip_crypto_coin', 'Crypto Coin', $params);
 }
 
-function chip_fpx_config_validate(array $params)
+function chip_crypto_coin_config_validate(array $params)
 {
 }
 
-function chip_fpx_link($params)
+function chip_crypto_coin_link($params)
 {
-  return ChipGateway::link($params, 'chip_fpx', 'paywithfpx.png', 'Pay with FPX (Online Banking)');
+  return ChipGateway::link($params, 'chip_crypto_coin', 'paywithcrypto.png', 'Pay with Crypto Coin');
 }
 
-function chip_fpx_refund($params)
+function chip_crypto_coin_refund($params)
 {
   return ChipGateway::refund($params);
 }
 
-function chip_fpx_account_balance($params)
+function chip_crypto_coin_account_balance($params)
 {
   return ChipGateway::account_balance($params);
 }
 
-function chip_fpx_TransactionInformation(array $params = []): Information
+function chip_crypto_coin_TransactionInformation(array $params = []): Information
 {
   return ChipGateway::transaction_information($params);
 }
 
 // $params = https://pastebin.com/vz16pSJV
-function chip_fpx_capture($params)
+function chip_crypto_coin_capture($params)
 {
-  return ChipGateway::capture($params, 'chip_fpx');
+  return ChipGateway::capture($params, 'chip_crypto_coin');
 }
 
 /**
@@ -76,22 +74,22 @@ function chip_fpx_capture($params)
  */
 // logActivity('Message goes here', 0);
 
-function chip_fpx_nolocalcc()
+function chip_crypto_coin_nolocalcc()
 {
   // this method must exists to hide card credit input displaying in checkout page
 }
 
-function chip_fpx_storeremote($params)
+function chip_crypto_coin_storeremote($params)
 {
   return ChipGateway::store_remote($params);
 }
 
-function chip_fpx_adminstatusmsg($params)
+function chip_crypto_coin_adminstatusmsg($params)
 {
   return false;
 }
 
-function chip_fpx_deactivate()
+function chip_crypto_coin_deactivate()
 {
   // remove database table. but make it remains commented
 }
