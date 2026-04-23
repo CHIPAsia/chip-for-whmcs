@@ -1,5 +1,14 @@
 == Changelog ==
 
+= 1.7.1 2026-04-23 =
+* Refactor - Centralize gateway, callback, and redirect logic into ChipGateway class (Thin Gateway architecture)
+* Feature - Add multi-currency support with automatic conversion for payments, captures, and refunds
+* Improved - Add strict typing and custom API exceptions for better error handling
+* Improved - Respect "Convert to For Processing" setting in admin configuration
+* Improved - Standardize database lock names to prevent race conditions
+* Docs - Modernize README with features, requirements, and technical details
+* Cleanup - Removed unused staging_deploy.sh script
+
 = 1.7.0 2026-04-21 =
 * Added - CHIP Crypto Coin payment method
 * Refactor - Consolidate gateway logic into shared ChipAction and ChipHelpers classes
