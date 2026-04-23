@@ -227,7 +227,7 @@ class ChipGateway
                         [
                             'name' => substr($params['description'], 0, 256),
                             'price' => round($capture_amount * 100),
-                        ]
+                        ],
                     ],
                 ],
             ];
@@ -449,7 +449,7 @@ class ChipGateway
                         'name' => substr($params['description'], 0, 256),
                         'price' => round($purchase_amount * 100),
                         'quantity' => '1',
-                    ]
+                    ],
                 ],
             ],
         ];
