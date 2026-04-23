@@ -21,5 +21,12 @@
         "email": "support@chip-in.asia",
         "forum": "https://www.facebook.com/groups/3210496372558088",
         "wiki": "https://docs.chip-in.asia/"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0"
+    },
+    "scripts": {
+        "lint": "php-cs-fixer fix --dry-run --diff --ansi",
+        "fix": "php-cs-fixer fix --ansi"
     }
 }
