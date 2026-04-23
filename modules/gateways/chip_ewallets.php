@@ -25,8 +25,6 @@ function chip_ewallets_MetaData()
     return array(
         'DisplayName' => 'CHIP E-Wallets',
         'APIVersion' => '1.1',
-        // Commented to allow Convert to for Processing
-        // 'supportedCurrencies' => array('MYR')
     );
 }
 

@@ -25,8 +25,6 @@ function chip_fpx_MetaData()
     return array(
         'DisplayName' => 'CHIP FPX',
         'APIVersion' => '1.1',
-        // Commented to allow Convert to for Processing
-        // 'supportedCurrencies' => array('MYR')
     );
 }
 
