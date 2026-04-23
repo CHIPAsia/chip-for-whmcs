@@ -84,14 +84,6 @@ class ChipGateway
       );
     }
 
-    if ($params['basecurrency'] != 'MYR') {
-      return array(
-        'status' => 'error',
-        'rawdata' => str_replace(':transid', $params['transid'], Lang::trans('Manual refund required: Automated refunds are only supported for MYR base currency. Please process the refund for Purchase ID :transid via the CHIP Dashboard.')),
-        'transid' => $params['transid'],
-      );
-    }
-
     try {
       $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
       $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
