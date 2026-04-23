@@ -67,13 +67,26 @@ class ChipAction
         $history->completed = true;
         $history->save();
 
-        $transaction_currency = Capsule::table("tblcurrencies")->where("code", "=", strtoupper($payment['payment']['currency']))->first(array("id"));
-        $client = Client::find($params["clientdetails"]["id"]);
-        $transactionFee = convertCurrency($payment['transaction_data']['attempts'][0]['fee_amount'] / 100, $transaction_currency->id, $client->currencyId);
-        $payment_amount = convertCurrency($payment['payment']['amount'] / 100, $transaction_currency->id, $client->currencyId);
-
         $invoice = Invoice::findOrFail($params['invoiceid']);
+        $client = Client::find($invoice->userid);
+        $client_currency_id = (int)$client->currencyId;
+
+        $transaction_currency = Capsule::table("tblcurrencies")->where("code", "=", strtoupper($payment['payment']['currency']))->first(array("id"));
+        
+        if (isset($params['convertto']) && (int)$params['convertto'] > 0) {
+          if ((int)$transaction_currency->id !== (int)$params['convertto']) {
+            throw new NotServicable("Transaction currency mismatch with Convert To setting");
+          }
+        }
+
+        $payment_amount = convertCurrency($payment['payment']['amount'] / 100, (int)$transaction_currency->id, $client_currency_id);
+        $transactionFee = convertCurrency($payment['transaction_data']['attempts'][0]['fee_amount'] / 100, (int)$transaction_currency->id, $client_currency_id);
+
         $amount = $invoice->balance;
+
+        if (abs($payment_amount - $amount) < 0.01) {
+          $payment_amount = $amount;
+        }
 
         if ($payment_amount != $amount) {
           throw new NotServicable("Invoice Amount Invalid");

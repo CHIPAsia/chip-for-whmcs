@@ -90,11 +90,18 @@ class ChipGateway
         );
       }
 
+      $fees = $result['payment']['fee_amount'] / 100;
+      if (isset($params['convertto'])) {
+        $from_currency = Capsule::table('tblcurrencies')->where('code', $currency_code)->first();
+        $to_currency_id = (int)Capsule::table('tblcurrencies')->where('code', $params['currency'])->first()->id;
+        $fees = convertCurrency($fees, $from_currency->id, $to_currency_id);
+      }
+
       return array(
         'status' => 'success',
         'rawdata' => json_encode($result),
         'transid' => $result['id'],
-        'fees' => $result['payment']['fee_amount'] / 100,
+        'fees' => $fees,
       );
     } catch (Exception $e) {
       return array(
@@ -235,7 +242,14 @@ class ChipGateway
       }
 
       if ($charge_payment['status'] == 'paid') {
-        return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100);
+      $fee = $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100;
+      if (isset($params['convertto'])) {
+        $from_currency = Capsule::table('tblcurrencies')->where('code', $currency_code)->first();
+        $to_currency_id = (int)$params['clientdetails']['currency'];
+        $fee = convertCurrency($fee, $from_currency->id, $to_currency_id);
+      }
+
+      return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $fee);
       } elseif ($charge_payment['status'] == 'pending_charge') {
         return array("status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
       }
