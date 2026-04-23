@@ -159,12 +159,6 @@ class ChipHelpers
                 'Default' => '60',
                 'Description' => 'Enter due strict timing. Default 60 for 1 hour.',
             ],
-            'purchaseSendReceipt' => [
-                'FriendlyName' => 'Purchase Send Receipt',
-                'Type' => 'yesno',
-                'Description' => 'Tick to ask CHIP to send receipt upon successful payment.',
-                'Default' => 'on',
-            ],
             'purchaseTimeZone' => [
                 'FriendlyName' => 'Time zone',
                 'Type' => 'dropdown',

@@ -217,7 +217,6 @@ class ChipGateway
                 'reference' => $params['invoiceid'],
                 'client_id' => $client['id'],
                 'platform' => 'whmcs',
-                'send_receipt' => $params['purchaseSendReceipt'] == 'on',
                 'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
                 'brand_id' => $params['brandId'],
                 'purchase' => [
@@ -431,7 +430,6 @@ class ChipGateway
             'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
             'reference' => $params['invoiceid'],
             'platform' => 'whmcs',
-            'send_receipt' => $params['purchaseSendReceipt'] == 'on',
             'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
             'brand_id' => $params['brandId'],
             'client' => [
