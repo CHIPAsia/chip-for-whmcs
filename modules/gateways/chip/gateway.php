@@ -178,6 +178,7 @@ class ChipGateway
                 ->setStatus($payment['status']);
         } catch (Exception $e) {
             \logActivity('CHIP Transaction Info Error: ' . $e->getMessage());
+
             return $information;
         }
     }
@@ -268,6 +269,7 @@ class ChipGateway
             return ["status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
         } catch (Exception $e) {
             \logActivity('CHIP Capture Error: ' . $e->getMessage());
+
             return ["status" => "declined", "declinereason" => $e->getMessage()];
         }
     }
@@ -285,6 +287,7 @@ class ChipGateway
                 } catch (Exception $e) {
                     \logActivity('CHIP Delete Token Error: ' . $e->getMessage());
                 }
+
                 break;
         }
 
