@@ -438,7 +438,7 @@ class ChipGateway
                 'street_address' => substr($params['clientdetails']['address1'] . ' ' . $params['clientdetails']['address2'], 0, 128),
                 'country' => $params['clientdetails']['countrycode'],
                 'city' => $params['clientdetails']['city'],
-                'zip_code' => $params['clientdetails']['postcode']
+                'zip_code' => $params['clientdetails']['postcode'],
             ],
             'purchase' => [
                 'timezone' => $params['purchaseTimeZone'],
