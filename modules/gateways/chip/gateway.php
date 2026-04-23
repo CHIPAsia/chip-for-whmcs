@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use WHMCS\Session;
-use WHMCS\Module\Gateway\Balance;
-use WHMCS\Module\Gateway\BalanceCollection;
 use WHMCS\Billing\Payment\Transaction\Information;
 use WHMCS\Carbon;
 use WHMCS\Database\Capsule;
+use WHMCS\Module\Gateway\Balance;
+use WHMCS\Module\Gateway\BalanceCollection;
+use WHMCS\Session;
 
 class ChipGateway
 {
@@ -30,6 +30,7 @@ class ChipGateway
                 foreach ($configured_payment_methods as $cpm) {
                     if (in_array($cpm, $payment_methods['available_payment_methods'])) {
                         $payment_method_configuration_error = false;
+
                         break;
                     }
                 }
@@ -155,6 +156,7 @@ class ChipGateway
             foreach ($payment['transaction_data']['attempts'] as $attempt) {
                 if (in_array($attempt['type'], ['execute', 'recurring_execute']) and $attempt['successful'] and empty($attempt['error'])) {
                     $payment_fee = $attempt['fee_amount'];
+
                     break;
                 }
             }

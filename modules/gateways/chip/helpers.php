@@ -45,7 +45,7 @@ class ChipHelpers
                         'Cards' => ['visa', 'mastercard', 'maestro', 'mpgs_apple_pay', 'mpgs_google_pay'],
                         'FPX' => ['fpx', 'fpx_b2b1'],
                         'E-Wallets & QR' => ['razer_atome', 'razer_grabpay', 'razer_maybankqr', 'razer_shopeepay', 'razer_tng', 'duitnow_qr', 'dnqr'],
-                        'Crypto' => ['crypto_coin']
+                        'Crypto' => ['crypto_coin'],
                     ];
 
                     $methods_by_category = [];
@@ -58,6 +58,7 @@ class ChipHelpers
                         foreach ($categories as $cat => $members) {
                             if (in_array($apm, $members)) {
                                 $found_cat = $cat;
+
                                 break;
                             }
                         }
@@ -143,7 +144,7 @@ class ChipHelpers
                 'FriendlyName' => 'Payment Information',
                 'Type' => 'textarea',
                 'Rows' => '5',
-                'Description' => 'This information will be displayed on the payment page.'
+                'Description' => 'This information will be displayed on the payment page.',
             ],
             'dueStrict' => [
                 'FriendlyName' => 'Due Strict',
@@ -169,7 +170,7 @@ class ChipHelpers
                 'Type' => 'dropdown',
                 'Description' => 'Time zone setting for receipt page.',
                 'Default' => 'Asia/Kuala_Lumpur',
-                'Options' => $formatted_time_zones
+                'Options' => $formatted_time_zones,
             ],
             'updateClientInfo' => [
                 'FriendlyName' => 'Update client information',
@@ -184,7 +185,7 @@ class ChipHelpers
                 'Options' => [
                     'default' => 'System Default',
                     'https' => 'Force HTTPS',
-                ]
+                ],
             ],
         ];
 
