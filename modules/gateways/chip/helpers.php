@@ -9,14 +9,14 @@ class ChipHelpers
     public static function get_config_params($gateway_name, $friendly_name, $params = [])
     {
         $list_time_zones = \DateTimeZone::listIdentifiers(\DateTimeZone::ALL);
-        $formatted_time_zones = array();
+        $formatted_time_zones = [];
         foreach ($list_time_zones as $mtz) {
             $formatted_time_zones[$mtz] = str_replace("_", " ", $mtz);
         }
 
         $show_whitelist_option = false;
         $show_force_token_option = false;
-        $available_payment_method = array();
+        $available_payment_method = [];
 
         if (!empty($params['secretKey']) && !empty($params['brandId'])) {
             try {
@@ -100,12 +100,12 @@ class ChipHelpers
                                 $is_first_in_cat = false;
                             }
 
-                            $available_payment_method['payment_method_whitelist__' . $apm] = array(
+                            $available_payment_method['payment_method_whitelist__' . $apm] = [
                                 'FriendlyName' => $friendly_name_label,
                                 'Type' => 'yesno',
                                 'Default' => $default,
                                 'Description' => $description,
-                            );
+                            ];
                         }
                     }
                     $show_whitelist_option = true;
@@ -120,88 +120,88 @@ class ChipHelpers
             }
         }
 
-        $config_params = array(
-            'FriendlyName' => array(
+        $config_params = [
+            'FriendlyName' => [
                 'Type' => 'System',
                 'Value' => $friendly_name,
-            ),
-            'brandId' => array(
+            ],
+            'brandId' => [
                 'FriendlyName' => 'Brand ID',
                 'Type' => 'text',
                 'Size' => '25',
                 'Default' => '',
                 'Description' => 'Enter your Brand ID here',
-            ),
-            'secretKey' => array(
+            ],
+            'secretKey' => [
                 'FriendlyName' => 'Secret Key',
                 'Type' => 'text',
                 'Size' => '25',
                 'Default' => '',
                 'Description' => 'Enter secret key here',
-            ),
-            'paymentInformation' => array(
+            ],
+            'paymentInformation' => [
                 'FriendlyName' => 'Payment Information',
                 'Type' => 'textarea',
                 'Rows' => '5',
                 'Description' => 'This information will be displayed on the payment page.'
-            ),
-            'dueStrict' => array(
+            ],
+            'dueStrict' => [
                 'FriendlyName' => 'Due Strict',
                 'Type' => 'yesno',
                 'Description' => 'Tick to enforce due strict payment timeframe',
                 'Default' => 'on',
-            ),
-            'dueStrictTiming' => array(
+            ],
+            'dueStrictTiming' => [
                 'FriendlyName' => 'Due Strict Timing',
                 'Type' => 'text',
                 'Size' => '3',
                 'Default' => '60',
                 'Description' => 'Enter due strict timing. Default 60 for 1 hour.',
-            ),
-            'purchaseSendReceipt' => array(
+            ],
+            'purchaseSendReceipt' => [
                 'FriendlyName' => 'Purchase Send Receipt',
                 'Type' => 'yesno',
                 'Description' => 'Tick to ask CHIP to send receipt upon successful payment.',
                 'Default' => 'on',
-            ),
-            'purchaseTimeZone' => array(
+            ],
+            'purchaseTimeZone' => [
                 'FriendlyName' => 'Time zone',
                 'Type' => 'dropdown',
                 'Description' => 'Time zone setting for receipt page.',
                 'Default' => 'Asia/Kuala_Lumpur',
                 'Options' => $formatted_time_zones
-            ),
-            'updateClientInfo' => array(
+            ],
+            'updateClientInfo' => [
                 'FriendlyName' => 'Update client information',
                 'Type' => 'yesno',
                 'Description' => 'Tick to update client information on purchase creation.',
                 'Default' => 'on',
-            ),
-            'systemUrlHttps' => array(
+            ],
+            'systemUrlHttps' => [
                 'FriendlyName' => 'System URL Mode',
                 'Type' => 'dropdown',
                 'Description' => 'Choose https if you are facing issue with payment status update due to http to https redirection',
-                'Options' => array(
+                'Options' => [
                     'default' => 'System Default',
                     'https' => 'Force HTTPS',
-                )
-            ),
-        );
+                ]
+            ],
+        ];
 
         if ($show_force_token_option) {
-            $config_params['forceTokenization'] = array(
+            $config_params['forceTokenization'] = [
                 'FriendlyName' => 'Force Tokenization',
                 'Type' => 'yesno',
                 'Description' => 'Tick to force tokenization for card payment.',
-            );
+            ];
         }
 
         if ($show_whitelist_option) {
-            $config_params['paymentWhitelist'] = array(
+            $config_params['paymentWhitelist'] = [
                 'FriendlyName' => 'Payment Method Whitelisting',
                 'Type' => 'yesno',
                 'Description' => 'Tick to enforce payment method whitelisting.',
-            );
+            ];
             $config_params += $available_payment_method;
         }
 
@@ -217,7 +217,7 @@ class ChipHelpers
         $keys = array_keys($params);
         $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
-        $configured_payment_methods = array();
+        $configured_payment_methods = [];
         foreach ($result as $key) {
             if ($params[$key] == 'on') {
                 $key_array = explode('__', $key);

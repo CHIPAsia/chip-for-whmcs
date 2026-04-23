@@ -2,14 +2,7 @@
 
 declare(strict_types=1);
 
-use WHMCS\ClientArea;
-use WHMCS\Session;
-use WHMCS\Module\Gateway\Balance;
-use WHMCS\Module\Gateway\BalanceCollection;
 use WHMCS\Billing\Payment\Transaction\Information;
-use WHMCS\Carbon;
-use WHMCS\Database\Capsule;
-use WHMCS\Exception\Module\NotServicable;
 
 if (!defined("WHMCS")) {
     die("This file cannot be accessed directly");
@@ -22,13 +15,13 @@ require_once __DIR__ . '/chip/gateway.php';
 
 function chip_crypto_coin_MetaData()
 {
-    return array(
+    return [
         'DisplayName' => 'CHIP Crypto Coin',
         'APIVersion' => '1.1',
-    );
+    ];
 }
 
-function chip_crypto_coin_config($params = array())
+function chip_crypto_coin_config($params = [])
 {
     return ChipHelpers::get_config_params('chip_crypto_coin', 'Crypto Coin', $params);
 }
@@ -57,7 +50,6 @@ function chip_crypto_coin_TransactionInformation(array $params = []): Informatio
     return ChipGateway::transaction_information($params);
 }
 
-// $params = https://pastebin.com/vz16pSJV
 function chip_crypto_coin_capture($params)
 {
     return ChipGateway::capture($params, 'chip_crypto_coin');

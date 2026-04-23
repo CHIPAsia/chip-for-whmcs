@@ -71,7 +71,7 @@ class ChipAction
                 $client = Client::find($invoice->userid);
                 $client_currency_id = (int)$client->currencyId;
 
-                $transaction_currency = Capsule::table("tblcurrencies")->where("code", "=", strtoupper($payment['payment']['currency']))->first(array("id"));
+                $transaction_currency = Capsule::table("tblcurrencies")->where("code", "=", strtoupper($payment['payment']['currency']))->first(["id"]);
 
                 if (!$transaction_currency) {
                     throw new NotServicable("Transaction currency not found in system");
@@ -107,7 +107,7 @@ class ChipAction
                     $send_credit_card_email
                 );
 
-                \logTransaction($params['name'], $payment, ucfirst($payment['status']), array('history_id' => $history->id));
+                \logTransaction($params['name'], $payment, ucfirst($payment['status']), ['history_id' => $history->id]);
 
                 if ($payment['is_recurring_token']) {
                     $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
@@ -140,7 +140,7 @@ class ChipAction
                         }
                     }
 
-                    $emailExtra = array("payMethod" => $invoice->payMethod);
+                    $emailExtra = ["payMethod" => $invoice->payMethod];
                     \sendMessage($emailTemplate, $params['invoiceid'], $emailExtra);
                 }
 

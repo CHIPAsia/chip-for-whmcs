@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use WHMCS\ClientArea;
 use WHMCS\Session;
 use WHMCS\Module\Gateway\Balance;
 use WHMCS\Module\Gateway\BalanceCollection;
@@ -82,14 +81,14 @@ class ChipGateway
 
         try {
             $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-            $result = $chip->refund_payment($params['transid'], array('amount' => round($refund_amount * 100)));
+            $result = $chip->refund_payment($params['transid'], ['amount' => round($refund_amount * 100)]);
 
             if (!is_array($result) || !array_key_exists('id', $result) or $result['status'] != 'success') {
-                return array(
+                return [
                     'status' => 'error',
                     'rawdata' => json_encode($result),
                     'transid' => $params['transid'],
-                );
+                ];
             }
 
             $fees = $result['payment']['fee_amount'] / 100;
@@ -102,18 +101,18 @@ class ChipGateway
                 }
             }
 
-            return array(
+            return [
                 'status' => 'success',
                 'rawdata' => json_encode($result),
                 'transid' => $result['id'],
                 'fees' => $fees,
-            );
+            ];
         } catch (Exception $e) {
-            return array(
+            return [
                 'status' => 'error',
                 'rawdata' => $e->getMessage(),
                 'transid' => $params['transid'],
-            );
+            ];
         }
     }
 
@@ -209,7 +208,7 @@ class ChipGateway
                 $system_url = preg_replace("/^http:/i", "https:", $system_url);
             }
 
-            $purchase_params = array(
+            $purchase_params = [
                 'success_callback' => $system_url . 'modules/gateways/callback/' . $gateway_name . '.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
                 'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
                 'reference' => $params['invoiceid'],
@@ -218,22 +217,22 @@ class ChipGateway
                 'send_receipt' => $params['purchaseSendReceipt'] == 'on',
                 'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
                 'brand_id' => $params['brandId'],
-                'purchase' => array(
+                'purchase' => [
                     'timezone' => $params['purchaseTimeZone'],
                     'currency' => $currency_code,
                     'due_strict' => $params['dueStrict'] == 'on',
-                    'products' => array(
+                    'products' => [
                         [
                             'name' => substr($params['description'], 0, 256),
                             'price' => round($capture_amount * 100),
                         ]
-                    ),
-                ),
-            );
+                    ],
+                ],
+            ];
 
             $create_payment = $chip->create_payment($purchase_params);
 
-            $charge_payment = $chip->charge_payment($create_payment['id'], array('recurring_token' => $params["gatewayid"]));
+            $charge_payment = $chip->charge_payment($create_payment['id'], ['recurring_token' => $params["gatewayid"]]);
 
             $payment_id = $create_payment['id'];
 
@@ -259,15 +258,15 @@ class ChipGateway
                     }
                 }
 
-                return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $fee);
+                return ["status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $fee];
             } elseif ($charge_payment['status'] == 'pending_charge') {
-                return array("status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
+                return ["status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
             }
 
-            return array("status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
+            return ["status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
         } catch (Exception $e) {
             \logActivity('CHIP Capture Error: ' . $e->getMessage());
-            return array("status" => "declined", "declinereason" => $e->getMessage());
+            return ["status" => "declined", "declinereason" => $e->getMessage()];
         }
     }
 
@@ -419,7 +418,7 @@ class ChipGateway
             }
         }
 
-        $send_params = array(
+        $send_params = [
             'success_callback' => $system_url . 'modules/gateways/callback/' . $gateway_module . '.php?invoiceid=' . $get_invoice_id,
             'success_redirect' => $params['returnurl'] . '&success=true',
             'failure_redirect' => $params['returnurl'],
@@ -439,22 +438,22 @@ class ChipGateway
                 'city' => $params['clientdetails']['city'],
                 'zip_code' => $params['clientdetails']['postcode']
             ],
-            'purchase' => array(
+            'purchase' => [
                 'timezone' => $params['purchaseTimeZone'],
                 'currency' => $currency_code,
                 'due_strict' => $params['dueStrict'] == 'on',
-                'products' => array(
+                'products' => [
                     [
                         'name' => substr($params['description'], 0, 256),
                         'price' => round($purchase_amount * 100),
                         'quantity' => '1',
                     ]
-                ),
-            ),
-        );
+                ],
+            ],
+        ];
 
         if (isset($params['paymentWhitelist']) and $params['paymentWhitelist'] == 'on') {
-            $send_params['payment_method_whitelist'] = array();
+            $send_params['payment_method_whitelist'] = [];
 
             $keys = array_keys($params);
             $result = preg_grep('/payment_method_whitelist__.*/', $keys);

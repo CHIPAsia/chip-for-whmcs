@@ -2,7 +2,7 @@ name: PHP CS Fixer
 
 on:
   push:
-    branches: [ main, fix/refund, add/stable_coin ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
