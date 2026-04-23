@@ -22,8 +22,23 @@ class ChipHelpers
       try {
         $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
         
+        $base_currency = Capsule::table('tblcurrencies')->where('default', '1')->first();
+        $currency_code = $base_currency ? $base_currency->code : 'MYR';
+
+        $convertto = Capsule::table('tblpaymentgateways')
+          ->where('gateway', $gateway_name)
+          ->where('setting', 'convertto')
+          ->first();
+
+        if ($convertto && $convertto->value) {
+          $convertto_currency = Capsule::table('tblcurrencies')->where('id', $convertto->value)->first();
+          if ($convertto_currency) {
+            $currency_code = $convertto_currency->code;
+          }
+        }
+
         // For specific gateways, we might want to filter or default whitelists
-        $result = $chip->payment_methods('MYR');
+        $result = $chip->payment_methods($currency_code);
 
         if (is_array($result) && array_key_exists('available_payment_methods', $result) && !empty($result['available_payment_methods'])) {
           $categories = [
@@ -96,7 +111,7 @@ class ChipHelpers
           $show_whitelist_option = true;
         }
 
-        $recurring_result = $chip->payment_recurring_methods('MYR');
+        $recurring_result = $chip->payment_recurring_methods($currency_code);
         if (is_array($recurring_result) && array_key_exists('available_payment_methods', $recurring_result) && !empty($recurring_result['available_payment_methods'])) {
           $show_force_token_option = true;
         }

@@ -29,7 +29,7 @@ The official CHIP payment gateway module for WHMCS. This module provides a seaml
 Enter your **Brand ID** and **Secret Key** in the gateway settings. 
 
 ### Currency Handling
-Please note that this module requires the final payment amount to be in **MYR**. If your store uses other currencies, ensure you have configured [Currency Conversion](https://docs.whmcs.com/Currencies) in WHMCS to "Convert To" MYR for the CHIP gateways.
+This module supports multiple currencies. If your store uses a currency not supported by CHIP, you can configure [Currency Conversion](https://docs.whmcs.com/Currencies) in WHMCS to "Convert To" a supported currency for the CHIP gateways. The module will automatically handle the conversion for payments, captures, and refunds.
 
 ## 🌐 Localization & Translations
 
@@ -39,10 +39,6 @@ We use standard WHMCS localization. To override or translate strings, create/edi
 <?php
 // Transaction Information
 $_ADMINLANG['transactions']['information']['chip_paid_on'] = "Paid On";
-
-// Gateway Messages
-$_LANG['This invoice is quoted in :currency, but CHIP only accepts payments in MYR.'] = "Your custom message here...";
-$_LANG['Manual refund required: Automated refunds are only supported for MYR base currency. Please process the refund for Purchase ID :transid via the CHIP Dashboard.'] = "Manual action needed for :transid...";
 ```
 
 ## 🛠 Developer Information

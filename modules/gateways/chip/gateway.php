@@ -14,16 +14,6 @@ class ChipGateway
 {
   public static function link($params, $gateway_name, $image_file, $image_title)
   {
-    if ($params['currency'] != 'MYR') {
-      $html = '<p>' . str_replace(':currency', $params['currency'], Lang::trans('This invoice is quoted in :currency, but CHIP only accepts payments in MYR.'));
-
-      if (ClientArea::isAdminMasqueradingAsClient()) {
-        $html .= "\n<br />" . Lang::trans("Administrators can enable 'Convert to For Processing' for MYR to allow this payment.");
-      }
-
-      return $html . '</p>';
-    }
-
     if (empty($params['secretKey']) or empty($params['brandId'])) {
       return '<p>Secret Key and Brand ID not set</p>';
     }
@@ -76,17 +66,21 @@ class ChipGateway
 
   public static function refund($params)
   {
-    if ($params['currency'] != 'MYR') {
-      return array(
-        'status' => 'error',
-        'rawdata' => Lang::trans('Refund failed: Transaction currency must be MYR.'),
-        'transid' => $params['transid'],
-      );
+    $refund_amount = $params['amount'];
+    $currency_code = $params['currency'];
+
+    if (isset($params['convertto'])) {
+      $convertto_currency = Capsule::table('tblcurrencies')->where('id', $params['convertto'])->first();
+      if ($convertto_currency) {
+        $from_currency = Capsule::table('tblcurrencies')->where('code', $params['currency'])->first();
+        $refund_amount = convertCurrency($refund_amount, $from_currency->id, (int)$params['convertto']);
+        $currency_code = $convertto_currency->code;
+      }
     }
 
     try {
       $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-      $result = $chip->refund_payment($params['transid'], array('amount' => round($params['amount'] * 100)));
+      $result = $chip->refund_payment($params['transid'], array('amount' => round($refund_amount * 100)));
 
       if (!is_array($result) || !array_key_exists('id', $result) or $result['status'] != 'success') {
         return array(
@@ -177,8 +171,16 @@ class ChipGateway
 
   public static function capture($params, $gateway_name)
   {
-    if ($params['currency'] != 'MYR') {
-      return array("status" => "declined", 'declinereason' => 'Unsupported currency');
+    $capture_amount = $params['amount'];
+    $currency_code = $params['currency'];
+
+    if (isset($params['convertto'])) {
+      $convertto_currency = Capsule::table('tblcurrencies')->where('id', $params['convertto'])->first();
+      if ($convertto_currency) {
+        $from_currency = Capsule::table('tblcurrencies')->where('code', $params['currency'])->first();
+        $capture_amount = convertCurrency($capture_amount, $from_currency->id, (int)$params['convertto']);
+        $currency_code = $convertto_currency->code;
+      }
     }
 
     try {
@@ -204,12 +206,12 @@ class ChipGateway
         'brand_id' => $params['brandId'],
         'purchase' => array(
           'timezone' => $params['purchaseTimeZone'],
-          'currency' => $params['currency'],
+          'currency' => $currency_code,
           'due_strict' => $params['dueStrict'] == 'on',
           'products' => array(
             [
               'name' => substr($params['description'], 0, 256),
-              'price' => round($params['amount'] * 100),
+              'price' => round($capture_amount * 100),
             ]
           ),
         ),
@@ -379,6 +381,18 @@ class ChipGateway
       $system_url = preg_replace("/^http:/i", "https:", $system_url);
     }
 
+    $purchase_amount = $params['amount'];
+    $currency_code = $params['currency'];
+
+    if (isset($params['convertto'])) {
+      $convertto_currency = Capsule::table('tblcurrencies')->where('id', $params['convertto'])->first();
+      if ($convertto_currency) {
+        $from_currency = Capsule::table('tblcurrencies')->where('code', $params['currency'])->first();
+        $purchase_amount = convertCurrency($purchase_amount, $from_currency->id, (int)$params['convertto']);
+        $currency_code = $convertto_currency->code;
+      }
+    }
+
     $send_params = array(
       'success_callback' => $system_url . 'modules/gateways/callback/' . $gateway_module . '.php?invoiceid=' . $get_invoice_id,
       'success_redirect' => $params['returnurl'] . '&success=true',
@@ -401,12 +415,12 @@ class ChipGateway
       ],
       'purchase' => array(
         'timezone' => $params['purchaseTimeZone'],
-        'currency' => $params['currency'],
+        'currency' => $currency_code,
         'due_strict' => $params['dueStrict'] == 'on',
         'products' => array(
           [
             'name' => substr($params['description'], 0, 256),
-            'price' => round($params['amount'] * 100),
+            'price' => round($purchase_amount * 100),
             'quantity' => '1',
           ]
         ),

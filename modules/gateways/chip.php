@@ -42,7 +42,22 @@ function chip_config_validate(array $params)
 {
   $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
-  $payment_methods = $chip->payment_methods('MYR');
+  $base_currency = Capsule::table('tblcurrencies')->where('default', '1')->first();
+  $currency_code = $base_currency ? $base_currency->code : 'MYR';
+
+  $convertto = Capsule::table('tblpaymentgateways')
+    ->where('gateway', 'chip')
+    ->where('setting', 'convertto')
+    ->first();
+
+  if ($convertto && $convertto->value) {
+    $convertto_currency = Capsule::table('tblcurrencies')->where('id', $convertto->value)->first();
+    if ($convertto_currency) {
+      $currency_code = $convertto_currency->code;
+    }
+  }
+
+  $payment_methods = $chip->payment_methods($currency_code);
 
   $payment_method_configuration_error = false;
 

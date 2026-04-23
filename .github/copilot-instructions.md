@@ -27,6 +27,6 @@ This is a WHMCS payment gateway module for CHIP. It supports multiple payment me
 - [modules/gateways/chip/action.php](modules/gateways/chip/action.php): Core business logic.
 
 ## Pitfalls & Gotchas
-- **Currency**: Primarily optimized for MYR. Relies on WHMCS currency conversion for others.
+- **Currency**: Supports multiple currencies with automatic conversion via WHMCS "Convert to For Processing" settings.
 - **Translations**: Requires manual translation overrides in WHMCS for full localized support. See [README.md](README.md) for details.
 - **Environment**: Requires a functional WHMCS installation for testing.
