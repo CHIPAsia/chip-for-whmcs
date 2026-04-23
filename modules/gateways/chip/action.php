@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use WHMCS\Database\Capsule;
-use WHMCS\User\Client;
 use WHMCS\Billing\Invoice;
-use WHMCS\Payment\PayMethod\Adapter\RemoteCreditCard;
-use WHMCS\Module\Gateway;
 use WHMCS\Carbon;
-use WHMCS\Exception\Module\NotServicable;
 use WHMCS\Config\Setting as WHMCSSetting;
+use WHMCS\Database\Capsule;
+use WHMCS\Exception\Module\NotServicable;
+use WHMCS\Module\Gateway;
+use WHMCS\Payment\PayMethod\Adapter\RemoteCreditCard;
+use WHMCS\User\Client;
 
 class ChipAction
 {
@@ -24,6 +24,7 @@ class ChipAction
                 $payment = $chip->get_payment($payment);
             } catch (Exception $e) {
                 \logActivity('CHIP Complete Payment Error: ' . $e->getMessage());
+
                 return false;
             }
         } else {
@@ -168,6 +169,7 @@ class ChipAction
             return $public_key;
         } catch (Exception $e) {
             \logActivity('CHIP Public Key Error: ' . $e->getMessage());
+
             return '';
         }
     }

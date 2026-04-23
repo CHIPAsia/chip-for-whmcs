@@ -58,6 +58,7 @@ function chip_config_validate(array $params)
         foreach ($configured_payment_methods as $cpm) {
             if (in_array($cpm, $payment_methods['available_payment_methods'])) {
                 $payment_method_configuration_error = false;
+
                 break;
             }
         }

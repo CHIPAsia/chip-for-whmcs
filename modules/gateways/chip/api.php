@@ -57,7 +57,7 @@ class ChipAPI
             [
                 'brand_id' => $this->brand_id,
                 'currency' => $currency,
-                'amount' => 1000
+                'amount' => 1000,
             ]
         );
     }
@@ -71,7 +71,7 @@ class ChipAPI
                 'brand_id' => $this->brand_id,
                 'currency' => $currency,
                 'amount' => 200,
-                'recurring' => 'true'
+                'recurring' => 'true',
             ]
         );
     }
@@ -161,6 +161,7 @@ class ChipAPI
             throw new ChipAPIException('CHIP API Client Error: ' . $e->getMessage(), $statusCode, $result, $e);
         } catch (\GuzzleHttp\Exception\GuzzleException $e) {
             \logActivity('CHIP API Network Error: ' . $e->getMessage());
+
             throw new ChipAPIException('CHIP API Network Error: ' . $e->getMessage(), 0, null, $e);
         }
     }
