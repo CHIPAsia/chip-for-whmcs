@@ -23,7 +23,7 @@ class ChipAction
         $payment_id = $payment;
         $payment = $chip->get_payment($payment);
       } catch (Exception $e) {
-        logActivity('CHIP Complete Payment Error: ' . $e->getMessage());
+        \logActivity('CHIP Complete Payment Error: ' . $e->getMessage());
         return false;
       }
     } else {
@@ -73,14 +73,18 @@ class ChipAction
 
         $transaction_currency = Capsule::table("tblcurrencies")->where("code", "=", strtoupper($payment['payment']['currency']))->first(array("id"));
         
+        if (!$transaction_currency) {
+          throw new NotServicable("Transaction currency not found in system");
+        }
+
         if (isset($params['convertto']) && (int)$params['convertto'] > 0) {
           if ((int)$transaction_currency->id !== (int)$params['convertto']) {
             throw new NotServicable("Transaction currency mismatch with Convert To setting");
           }
         }
 
-        $payment_amount = convertCurrency($payment['payment']['amount'] / 100, (int)$transaction_currency->id, $client_currency_id);
-        $transactionFee = convertCurrency($payment['transaction_data']['attempts'][0]['fee_amount'] / 100, (int)$transaction_currency->id, $client_currency_id);
+        $payment_amount = \convertCurrency((float)($payment['payment']['amount'] / 100), (int)$transaction_currency->id, $client_currency_id);
+        $transactionFee = \convertCurrency((float)($payment['transaction_data']['attempts'][0]['fee_amount'] / 100), (int)$transaction_currency->id, $client_currency_id);
 
         $amount = $invoice->balance;
 
@@ -137,7 +141,7 @@ class ChipAction
           }
 
           $emailExtra = array("payMethod" => $invoice->payMethod);
-          sendMessage($emailTemplate, $params['invoiceid'], $emailExtra);
+          \sendMessage($emailTemplate, $params['invoiceid'], $emailExtra);
         }
 
         return true;
@@ -163,7 +167,7 @@ class ChipAction
 
       return $public_key;
     } catch (Exception $e) {
-      logActivity('CHIP Public Key Error: ' . $e->getMessage());
+      \logActivity('CHIP Public Key Error: ' . $e->getMessage());
       return '';
     }
   }

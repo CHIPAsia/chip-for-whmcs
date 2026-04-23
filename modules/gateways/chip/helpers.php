@@ -8,7 +8,7 @@ class ChipHelpers
 {
   public static function get_config_params($gateway_name, $friendly_name, $params = [])
   {
-    $list_time_zones = DateTimeZone::listIdentifiers(DateTimeZone::ALL);
+    $list_time_zones = \DateTimeZone::listIdentifiers(\DateTimeZone::ALL);
     $formatted_time_zones = array();
     foreach ($list_time_zones as $mtz) {
       $formatted_time_zones[$mtz] = str_replace("_", " ", $mtz);
@@ -116,7 +116,7 @@ class ChipHelpers
           $show_force_token_option = true;
         }
       } catch (Exception $e) {
-        logActivity('CHIP Config Error: ' . $e->getMessage());
+        \logActivity('CHIP Config Error: ' . $e->getMessage());
       }
     }
 

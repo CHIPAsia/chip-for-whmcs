@@ -160,7 +160,7 @@ class ChipAPI
 
       throw new ChipAPIException('CHIP API Client Error: ' . $e->getMessage(), $statusCode, $result, $e);
     } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-      logActivity('CHIP API Network Error: ' . $e->getMessage());
+      \logActivity('CHIP API Network Error: ' . $e->getMessage());
       throw new ChipAPIException('CHIP API Network Error: ' . $e->getMessage(), 0, null, $e);
     }
   }

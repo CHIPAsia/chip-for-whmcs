@@ -53,10 +53,10 @@ class ChipGateway
       . nl2br($params['paymentInformation'])
       . '<br />'
       . '<a href="' . $params['systemurl'] . 'modules/gateways/chip/redirect.php?invoiceid=' . $params['invoiceid'] . '&gateway=' . $gateway_name . '">'
-      . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/' . $gateway_name . '/' . $image_file . '" title="' . Lang::trans($image_title) . '">'
+      . '<img height="44px" src="' . $params['systemurl'] . 'modules/gateways/' . $gateway_name . '/' . $image_file . '" title="' . \Lang::trans($image_title) . '">'
       . '</a>'
       . '<br />'
-      . Lang::trans('invoicerefnum')
+      . \Lang::trans('invoicerefnum')
       . ': '
       . $params['invoicenum']
       . '</p>';
@@ -73,8 +73,10 @@ class ChipGateway
       $convertto_currency = Capsule::table('tblcurrencies')->where('id', $params['convertto'])->first();
       if ($convertto_currency) {
         $from_currency = Capsule::table('tblcurrencies')->where('code', $params['currency'])->first();
-        $refund_amount = convertCurrency($refund_amount, $from_currency->id, (int)$params['convertto']);
-        $currency_code = $convertto_currency->code;
+        if ($from_currency) {
+          $refund_amount = convertCurrency((float)$refund_amount, (int)$from_currency->id, (int)$params['convertto']);
+          $currency_code = $convertto_currency->code;
+        }
       }
     }
 
@@ -93,8 +95,11 @@ class ChipGateway
       $fees = $result['payment']['fee_amount'] / 100;
       if (isset($params['convertto'])) {
         $from_currency = Capsule::table('tblcurrencies')->where('code', $currency_code)->first();
-        $to_currency_id = (int)Capsule::table('tblcurrencies')->where('code', $params['currency'])->first()->id;
-        $fees = convertCurrency($fees, $from_currency->id, $to_currency_id);
+        $to_currency = Capsule::table('tblcurrencies')->where('code', $params['currency'])->first();
+        
+        if ($from_currency && $to_currency) {
+          $fees = convertCurrency((float)$fees, (int)$from_currency->id, (int)$to_currency->id);
+        }
       }
 
       return array(
@@ -129,7 +134,7 @@ class ChipGateway
         }
       }
     } catch (Exception $e) {
-      logActivity('CHIP Balance Error: ' . $e->getMessage());
+      \logActivity('CHIP Balance Error: ' . $e->getMessage());
     }
 
     return BalanceCollection::factoryFromItems(...$balanceInfo);
@@ -171,7 +176,7 @@ class ChipGateway
         ->setFee($payment_fee / 100)
         ->setStatus($payment['status']);
     } catch (Exception $e) {
-      logActivity('CHIP Transaction Info Error: ' . $e->getMessage());
+      \logActivity('CHIP Transaction Info Error: ' . $e->getMessage());
       return $information;
     }
   }
@@ -185,8 +190,10 @@ class ChipGateway
       $convertto_currency = Capsule::table('tblcurrencies')->where('id', $params['convertto'])->first();
       if ($convertto_currency) {
         $from_currency = Capsule::table('tblcurrencies')->where('code', $params['currency'])->first();
-        $capture_amount = convertCurrency($capture_amount, $from_currency->id, (int)$params['convertto']);
-        $currency_code = $convertto_currency->code;
+        if ($from_currency) {
+          $capture_amount = convertCurrency((float)$capture_amount, (int)$from_currency->id, (int)$params['convertto']);
+          $currency_code = $convertto_currency->code;
+        }
       }
     }
 
@@ -246,7 +253,10 @@ class ChipGateway
       if (isset($params['convertto'])) {
         $from_currency = Capsule::table('tblcurrencies')->where('code', $currency_code)->first();
         $to_currency_id = (int)$params['clientdetails']['currency'];
-        $fee = convertCurrency($fee, $from_currency->id, $to_currency_id);
+        
+        if ($from_currency) {
+          $fee = convertCurrency((float)$fee, (int)$from_currency->id, $to_currency_id);
+        }
       }
 
       return array("status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $fee);
@@ -256,7 +266,7 @@ class ChipGateway
 
       return array("status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment);
     } catch (Exception $e) {
-      logActivity('CHIP Capture Error: ' . $e->getMessage());
+      \logActivity('CHIP Capture Error: ' . $e->getMessage());
       return array("status" => "declined", "declinereason" => $e->getMessage());
     }
   }
@@ -272,7 +282,7 @@ class ChipGateway
           $chip = \ChipAPI::get_instance($params['secretKey'], '');
           $chip->delete_token($token);
         } catch (Exception $e) {
-          logActivity('CHIP Delete Token Error: ' . $e->getMessage());
+          \logActivity('CHIP Delete Token Error: ' . $e->getMessage());
         }
         break;
     }
@@ -288,8 +298,8 @@ class ChipGateway
     require_once __DIR__ . '/action.php';
     require_once __DIR__ . '/../../../init.php';
     
-    App::load_function('gateway');
-    App::load_function('invoice');
+    \App::load_function('gateway');
+    \App::load_function('invoice');
 
     if (!isset($_GET['invoiceid'])) {
       die('No invoiceid parameter is set');
@@ -339,11 +349,11 @@ class ChipGateway
     require_once __DIR__ . '/action.php';
     require_once __DIR__ . '/../../../init.php';
     
-    App::load_function('gateway');
-    App::load_function('invoice');
+    \App::load_function('gateway');
+    \App::load_function('invoice');
 
     if (!isset($_GET['invoiceid'])) {
-      logActivity('CHIP Redirect: Missing invoiceid');
+      \logActivity('CHIP Redirect: Missing invoiceid');
       exit;
     }
 
@@ -351,7 +361,7 @@ class ChipGateway
 
     $get_invoice_id = filter_var($_GET['invoiceid'], FILTER_VALIDATE_INT);
     if (!$get_invoice_id || $get_invoice_id <= 0) {
-      logActivity('CHIP Redirect: Invalid invoiceid ' . $_GET['invoiceid']);
+      \logActivity('CHIP Redirect: Invalid invoiceid ' . $_GET['invoiceid']);
       header('Location: ' . $GLOBALS['CONFIG']['SystemURL']);
       exit;
     }
@@ -376,12 +386,12 @@ class ChipGateway
       $param_client_id = $params['clientdetails']['client_id'];
 
       if ($current_user_client_id != $param_client_id) {
-        logActivity('CHIP Redirect: Attempt to access other client invoice with number #' . $get_invoice_id, $current_user_client_id);
+        \logActivity('CHIP Redirect: Attempt to access other client invoice with number #' . $get_invoice_id, $current_user_client_id);
         header('Location: ' . $GLOBALS['CONFIG']['SystemURL']);
         exit;
       }
     } else {
-      logActivity('CHIP Redirect: Unauthenticated access attempt for invoice #' . $get_invoice_id);
+      \logActivity('CHIP Redirect: Unauthenticated access attempt for invoice #' . $get_invoice_id);
       header('Location: ' . $GLOBALS['CONFIG']['SystemURL']);
       exit;
     }
@@ -402,8 +412,10 @@ class ChipGateway
       $convertto_currency = Capsule::table('tblcurrencies')->where('id', $params['convertto'])->first();
       if ($convertto_currency) {
         $from_currency = Capsule::table('tblcurrencies')->where('code', $params['currency'])->first();
-        $purchase_amount = convertCurrency($purchase_amount, $from_currency->id, (int)$params['convertto']);
-        $currency_code = $convertto_currency->code;
+        if ($from_currency) {
+          $purchase_amount = convertCurrency((float)$purchase_amount, (int)$from_currency->id, (int)$params['convertto']);
+          $currency_code = $convertto_currency->code;
+        }
       }
     }
 
@@ -459,7 +471,7 @@ class ChipGateway
       $send_params['force_recurring'] = true;
     }
 
-    logActivity("CHIP Redirect: Creating payment for Invoice #$get_invoice_id via $gateway_module");
+    \logActivity("CHIP Redirect: Creating payment for Invoice #$get_invoice_id via $gateway_module");
 
     try {
       $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
@@ -482,7 +494,7 @@ class ChipGateway
       $payment = $chip->create_payment($send_params);
 
       if (!is_array($payment) || !array_key_exists('checkout_url', $payment)) {
-        logActivity("CHIP Redirect: Failed to create payment for Invoice #$get_invoice_id. Response: " . json_encode($payment));
+        \logActivity("CHIP Redirect: Failed to create payment for Invoice #$get_invoice_id. Response: " . json_encode($payment));
         echo "Failed to create payment. Please contact administrator.";
         exit;
       }
@@ -492,7 +504,7 @@ class ChipGateway
 
       header('Location: ' . $payment['checkout_url']);
     } catch (Exception $e) {
-      logActivity("CHIP Redirect Error for Invoice #$get_invoice_id: " . $e->getMessage());
+      \logActivity("CHIP Redirect Error for Invoice #$get_invoice_id: " . $e->getMessage());
       echo "An error occurred while initiating payment. Please try again later.";
       exit;
     }
