@@ -354,10 +354,25 @@ class ChipHelpers
     }
 
     /**
+     * Cache for fetch_merchant_available_methods(). Keyed on
+     * "{secretKey}|{brandId}|{currency}" with a 60s TTL — long enough to
+     * absorb a redirect + capture + webhook burst for the same brand,
+     * short enough that admin-side changes propagate within a minute.
+     *
+     * @var array<string, array{expires_at: int, value: list<string>}>
+     */
+    private static $merchantAvailableCache = [];
+
+    /**
      * Read the merchant's available payment methods from CHIP, used by the
      * emit step to resolve alias groups (Card / DuitNow QR / Shopee Pay)
      * against what the brand actually supports. Returns an empty list on
      * any failure so the expander degrades gracefully.
+     *
+     * Results are cached in-process for 60 seconds to avoid hammering the
+     * /payment_methods/ endpoint when both get_whitelisted_methods() and
+     * redirect() (or capture() and a future webhook) resolve the list
+     * for the same brand in quick succession.
      *
      * @param string $secretKey
      * @param string $brandId
@@ -366,6 +381,13 @@ class ChipHelpers
      */
     public static function fetch_merchant_available_methods(string $secretKey, string $brandId, string $currency): array
     {
+        $key = $secretKey . '|' . $brandId . '|' . $currency;
+        $now = time();
+
+        if (isset(self::$merchantAvailableCache[$key]) && self::$merchantAvailableCache[$key]['expires_at'] > $now) {
+            return self::$merchantAvailableCache[$key]['value'];
+        }
+
         try {
             $chip = \ChipAPI::get_instance($secretKey, $brandId);
             $result = $chip->payment_methods($currency);
@@ -379,7 +401,13 @@ class ChipHelpers
             return [];
         }
 
-        return array_values($result['available_payment_methods']);
+        $value = array_values($result['available_payment_methods']);
+        self::$merchantAvailableCache[$key] = [
+            'expires_at' => $now + 60,
+            'value' => $value,
+        ];
+
+        return $value;
     }
 
     public static function get_whitelisted_methods($params)
