@@ -110,7 +110,7 @@ class ChipAction
 
                 \logTransaction($params['name'], $payment, ucfirst($payment['status']), ['history_id' => $history->id]);
 
-                if ($payment['is_recurring_token']) {
+                if ($payment['is_recurring_token'] && ($params['disableRecurring'] ?? '') !== 'on') {
                     $payMethod = RemoteCreditCard::factoryPayMethod($client, $client->billingContact);
                     $gateway = Gateway::factory($params['paymentmethod']);
                     $payMethod->description = $payment['transaction_data']['extra']['cardholder_name'];
