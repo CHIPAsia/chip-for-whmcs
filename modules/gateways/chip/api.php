@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 if (!defined('CHIP_MODULE_VERSION')) {
-    define('CHIP_MODULE_VERSION', '1.7.1');
+    define('CHIP_MODULE_VERSION', '1.7.2');
 }
 
 require_once __DIR__ . '/exceptions.php';
@@ -79,21 +79,6 @@ class ChipAPI
     public function get_payment(string $payment_id): ?array
     {
         return $this->call('GET', "purchases/{$payment_id}/");
-    }
-
-    public function create_client(array $params): ?array
-    {
-        return $this->call('POST', "clients/", $params);
-    }
-
-    public function get_client_by_email(string $email): ?array
-    {
-        return $this->call('GET', "clients/", ['q' => $email]);
-    }
-
-    public function patch_client(string $client_id, array $params): ?array
-    {
-        return $this->call('PATCH', "clients/{$client_id}/", $params);
     }
 
     public function delete_token(string $purchase_id): ?array

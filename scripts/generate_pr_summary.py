@@ -3,7 +3,7 @@ import sys
 import requests
 import json
 
-def generate_summary(diff_text, current_body, api_key, model="gemini-3-flash-preview:cloud"):
+def generate_summary(diff_text, current_body, api_key, model="gemma4:31b"):
     # Ollama Cloud API endpoint
     url = os.getenv("OLLAMA_API_URL", "https://api.ollama.com/api/generate")
     

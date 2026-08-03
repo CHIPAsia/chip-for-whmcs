@@ -11,6 +11,32 @@ use WHMCS\Session;
 
 class ChipGateway
 {
+    /**
+     * Build the nested `client` block that CHIP's /purchases/ endpoint
+     * accepts to create or match a customer inline with a purchase.
+     *
+     * Centralising this keeps phone-number normalisation and field
+     * truncation in one place so redirect() and capture() stay in sync.
+     *
+     * @param array $params WHMCS gateway params (must include clientdetails)
+     * @return array the `client` block, ready to be spread into a purchase body
+     */
+    private static function buildChipClient(array $params): array
+    {
+        $details = $params['clientdetails'];
+        $phone = implode(' ', explode('.', $details['phonenumberformatted']));
+
+        return [
+            'email' => $details['email'],
+            'phone' => $phone,
+            'full_name' => substr($details['fullname'], 0, 30),
+            'street_address' => substr($details['address1'] . ' ' . $details['address2'], 0, 128),
+            'country' => $details['countrycode'],
+            'city' => $details['city'],
+            'zip_code' => $details['postcode'],
+        ];
+    }
+
     public static function link($params, $gateway_name, $image_file, $image_title)
     {
         if (empty($params['secretKey']) or empty($params['brandId'])) {
@@ -39,6 +65,19 @@ class ChipGateway
             if ($payment_method_configuration_error) {
                 return '<p>Payment method whitelisting error. Please disable payment method whitelisting</p>';
             }
+        }
+
+        // disableRecurring and forceTokenization are mutually exclusive.
+        // Runs for ALL chip_* gateways (the per-method wrappers and the
+        // generic chip gateway), not just for the 'chip' one above, because
+        // the disableRecurring / forceTokenization admin toggles exist on
+        // every chip_* per-method configuration. forceTokenization asks
+        // CHIP to save a card, but disableRecurring asks WHMCS to drop the
+        // saved card on the webhook. The card ends up on file at CHIP but
+        // unreachable from WHMCS — a silent dead state. Refuse loudly so
+        // the merchant knows to pick one.
+        if (($params['disableRecurring'] ?? '') === 'on' && ($params['forceTokenization'] ?? '') === 'on') {
+            return '<p>Configuration error: "Disable Recurring Payments" and "Force Tokenization" cannot both be enabled. The card would be saved at CHIP but rejected by WHMCS, leaving the merchant unable to charge the customer again. Please disable one of them.</p>';
         }
 
         if (isset($_GET['success']) && !empty(Session::get($gateway_name . '_' . $params['invoiceid']))) {
@@ -199,11 +238,17 @@ class ChipGateway
             }
         }
 
+        if (($params['disableRecurring'] ?? '') === 'on' && !empty($params['gatewayid'])) {
+            \logActivity('CHIP Capture Rejected (disableRecurring=on): gateway ' . $gateway_name);
+
+            return [
+                'status' => 'declined',
+                'declinereason' => 'Recurring payments are disabled for this gateway.',
+            ];
+        }
+
         try {
             $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-
-            $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
-            $client = $get_client['results'][0];
 
             $system_url = $params['systemurl'];
 
@@ -215,10 +260,10 @@ class ChipGateway
                 'success_callback' => $system_url . 'modules/gateways/callback/' . $gateway_name . '.php?capturecallback=true&invoiceid=' . $params['invoiceid'],
                 'creator_agent' => 'WHMCS: ' . CHIP_MODULE_VERSION,
                 'reference' => $params['invoiceid'],
-                'client_id' => $client['id'],
                 'platform' => 'whmcs',
                 'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
                 'brand_id' => $params['brandId'],
+                'client' => self::buildChipClient($params),
                 'purchase' => [
                     'timezone' => $params['purchaseTimeZone'],
                     'currency' => $currency_code,
@@ -399,9 +444,6 @@ class ChipGateway
             exit;
         }
 
-        $phone_a = explode('.', $params['clientdetails']['phonenumberformatted']);
-        $phone = implode(' ', $phone_a);
-
         $system_url = $params['systemurl'];
 
         if ($params['systemUrlHttps'] == 'https') {
@@ -432,15 +474,7 @@ class ChipGateway
             'platform' => 'whmcs',
             'due' => time() + (abs((int)$params['dueStrictTiming']) * 60),
             'brand_id' => $params['brandId'],
-            'client' => [
-                'email' => $params['clientdetails']['email'],
-                'phone' => $phone,
-                'full_name' => substr($params['clientdetails']['fullname'], 0, 30),
-                'street_address' => substr($params['clientdetails']['address1'] . ' ' . $params['clientdetails']['address2'], 0, 128),
-                'country' => $params['clientdetails']['countrycode'],
-                'city' => $params['clientdetails']['city'],
-                'zip_code' => $params['clientdetails']['postcode'],
-            ],
+            'client' => self::buildChipClient($params),
             'purchase' => [
                 'timezone' => $params['purchaseTimeZone'],
                 'currency' => $currency_code,
@@ -456,17 +490,24 @@ class ChipGateway
         ];
 
         if (isset($params['paymentWhitelist']) and $params['paymentWhitelist'] == 'on') {
-            $send_params['payment_method_whitelist'] = [];
-
             $keys = array_keys($params);
             $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
+            $ticked = [];
             foreach ($result as $key) {
                 if ($params[$key] == 'on') {
                     $key_array = explode('__', $key);
-                    $send_params['payment_method_whitelist'][] = end($key_array);
+                    $ticked[] = end($key_array);
                 }
             }
+
+            $merchantAvailable = \ChipHelpers::fetch_merchant_available_methods(
+                (string) ($params['secretKey'] ?? ''),
+                (string) ($params['brandId'] ?? ''),
+                $currency_code
+            );
+
+            $send_params['payment_method_whitelist'] = \ChipHelpers::expand_whitelist_aliases($ticked, $merchantAvailable);
         }
 
         if (isset($params['forceTokenization']) and $params['forceTokenization'] == 'on') {
@@ -478,21 +519,11 @@ class ChipGateway
         try {
             $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
-            $get_client = $chip->get_client_by_email($params['clientdetails']['email']);
-
-            if (!empty($get_client['results']) && is_array($get_client['results'])) {
-                $client = $get_client['results'][0];
-
-                if ($params['updateClientInfo'] == 'on') {
-                    $chip->patch_client($client['id'], $send_params['client']);
-                }
-            } else {
-                $client = $chip->create_client($send_params['client']);
-            }
-
-            unset($send_params['client']);
-            $send_params['client_id'] = $client['id'];
-
+            // Pass the client details directly to create_payment; CHIP will
+            // create or match the customer on the purchase itself. Avoids the
+            // separate /clients/ round-trip, which fails with
+            // `clients_unique_email` when the PATCH body re-sends an unchanged
+            // email address.
             $payment = $chip->create_payment($send_params);
 
             if (!is_array($payment) || !array_key_exists('checkout_url', $payment)) {
