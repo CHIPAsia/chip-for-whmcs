@@ -67,6 +67,19 @@ class ChipGateway
             }
         }
 
+        // disableRecurring and forceTokenization are mutually exclusive.
+        // Runs for ALL chip_* gateways (the per-method wrappers and the
+        // generic chip gateway), not just for the 'chip' one above, because
+        // the disableRecurring / forceTokenization admin toggles exist on
+        // every chip_* per-method configuration. forceTokenization asks
+        // CHIP to save a card, but disableRecurring asks WHMCS to drop the
+        // saved card on the webhook. The card ends up on file at CHIP but
+        // unreachable from WHMCS — a silent dead state. Refuse loudly so
+        // the merchant knows to pick one.
+        if (($params['disableRecurring'] ?? '') === 'on' && ($params['forceTokenization'] ?? '') === 'on') {
+            return '<p>Configuration error: "Disable Recurring Payments" and "Force Tokenization" cannot both be enabled. The card would be saved at CHIP but rejected by WHMCS, leaving the merchant unable to charge the customer again. Please disable one of them.</p>';
+        }
+
         if (isset($_GET['success']) && !empty(Session::get($gateway_name . '_' . $params['invoiceid']))) {
             $payment_id = Session::getAndDelete($gateway_name . '_' . $params['invoiceid']);
 

@@ -10,6 +10,9 @@
 ### Removed
 - "Update client information" admin toggle. The corresponding code path was removed in 1.7.1. Existing database rows with this setting are silently ignored.
 
+### Validation
+- "Disable Recurring Payments" and "Force Tokenization" cannot both be enabled on the same gateway. If both are ticked, the invoice page now shows a clear configuration error instead of silently saving a card at CHIP that WHMCS will not store.
+
 ### Migration notes
 - Existing per-method whitelist keys (`payment_method_whitelist__visa`, `__mastercard`, `__maestro`, `__dnqr`, `__duitnow_qr`, `__razer_shopeepay`, `__shopee_pay`) saved in `tblpaymentgateways` from earlier versions are silently ignored. Re-tick the new group tickboxes (`__card`, `__duitnow_qr`, `__shopee_pay`) after upgrading to apply whitelisting.
 
