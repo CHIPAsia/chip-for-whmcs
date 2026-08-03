@@ -13,7 +13,7 @@ Give merchants a per-gateway option to prevent the CHIP module from saving cards
 When the new `disableRecurring` setting is `on` for a gateway:
 
 1. **New payments** — `ChipAction::complete_payment()` skips the `RemoteCreditCard::factoryPayMethod(...)` save block, even when `$payment['is_recurring_token']` is true. No new `payMethod` row is created.
-2. **Capture with stored token** — `ChipGateway::capture()` returns `['status' => 'declined', 'declinereason' => 'Recurring payments are disabled for this gateway.']` before any CHIP API call, when the request would have used a stored token (`$params['gatewayid']` is set in the recurring-capture flow).
+2. **Capture with stored token** — `ChipGateway::capture()` returns `['status' => 'declined', 'declinereason' => 'Recurring payments are disabled for this gateway.']` before any CHIP API call, **only** when the request would have used a stored token (`$params['gatewayid']` is set) and `disableRecurring` is `on`. The guard is intentionally conditional so a hypothetical future WHMCS call to `capture()` without a stored token (e.g. for a first-time card payment) would not be silently broken.
 3. **Existing tokens** — remain in the WHMCS database and remain chargeable **only** if the merchant flips the toggle back off. They are not auto-deleted, and the existing `store_remote` 'delete' action is the merchant's manual cleanup path.
 
 When the setting is off (default) or unset, behavior is unchanged.

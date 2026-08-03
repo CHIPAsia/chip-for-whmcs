@@ -199,8 +199,8 @@ class ChipGateway
             }
         }
 
-        if (($params['disableRecurring'] ?? '') === 'on') {
-            \logActivity('CHIP Capture Rejected: Recurring payments disabled for gateway ' . $gateway_name);
+        if (($params['disableRecurring'] ?? '') === 'on' && !empty($params['gatewayid'])) {
+            \logActivity('CHIP Capture Rejected (disableRecurring=on): gateway ' . $gateway_name);
 
             return [
                 'status' => 'declined',
