@@ -488,13 +488,11 @@ class ChipGateway
                 }
             }
 
-            $merchantAvailable = [];
-            if (!empty($params['_availablePaymentMethods'])) {
-                $merchantAvailable = array_values(array_filter(
-                    array_map('trim', explode(',', (string) $params['_availablePaymentMethods'])),
-                    'strlen'
-                ));
-            }
+            $merchantAvailable = \ChipHelpers::fetch_merchant_available_methods(
+                (string) ($params['secretKey'] ?? ''),
+                (string) ($params['brandId'] ?? ''),
+                $currency_code
+            );
 
             $send_params['payment_method_whitelist'] = \ChipHelpers::expand_whitelist_aliases($ticked, $merchantAvailable);
         }

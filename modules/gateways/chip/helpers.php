@@ -178,17 +178,6 @@ class ChipHelpers
                         $methods_by_category[$found_cat][] = $apm;
                     }
 
-                    // Stash the full available list for the emit step. Type
-                    // 'System' makes WHMCS treat this as an internal value:
-                    // not rendered in the admin form, not user-editable, and
-                    // persisted to tblpaymentgateways with the underscore-
-                    // prefixed key.
-                    $available_payment_method['_availablePaymentMethods'] = [
-                        'FriendlyName' => '_availablePaymentMethods',
-                        'Type' => 'System',
-                        'Default' => implode(',', $result['available_payment_methods']),
-                    ];
-
                     foreach ($methods_by_category as $category => $apms) {
                         $is_first_in_cat = true;
                         foreach ($apms as $apm) {
@@ -364,6 +353,35 @@ class ChipHelpers
         return $config_params;
     }
 
+    /**
+     * Read the merchant's available payment methods from CHIP, used by the
+     * emit step to resolve alias groups (Card / DuitNow QR / Shopee Pay)
+     * against what the brand actually supports. Returns an empty list on
+     * any failure so the expander degrades gracefully.
+     *
+     * @param string $secretKey
+     * @param string $brandId
+     * @param string $currency
+     * @return list<string>
+     */
+    public static function fetch_merchant_available_methods(string $secretKey, string $brandId, string $currency): array
+    {
+        try {
+            $chip = \ChipAPI::get_instance($secretKey, $brandId);
+            $result = $chip->payment_methods($currency);
+        } catch (Exception $e) {
+            \logActivity('CHIP: failed to fetch merchant payment methods: ' . $e->getMessage());
+
+            return [];
+        }
+
+        if (!is_array($result) || !isset($result['available_payment_methods']) || !is_array($result['available_payment_methods'])) {
+            return [];
+        }
+
+        return array_values($result['available_payment_methods']);
+    }
+
     public static function get_whitelisted_methods($params)
     {
         if ($params['paymentWhitelist'] != 'on') {
@@ -381,13 +399,11 @@ class ChipHelpers
             }
         }
 
-        $merchantAvailable = [];
-        if (!empty($params['_availablePaymentMethods'])) {
-            $merchantAvailable = array_values(array_filter(
-                array_map('trim', explode(',', (string) $params['_availablePaymentMethods'])),
-                'strlen'
-            ));
-        }
+        $merchantAvailable = self::fetch_merchant_available_methods(
+            (string) ($params['secretKey'] ?? ''),
+            (string) ($params['brandId'] ?? ''),
+            (string) ($params['currency'] ?? 'MYR')
+        );
 
         return self::expand_whitelist_aliases($ticked, $merchantAvailable);
     }
