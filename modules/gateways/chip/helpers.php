@@ -354,25 +354,23 @@ class ChipHelpers
     }
 
     /**
-     * Cache for fetch_merchant_available_methods(). Keyed on
-     * "{secretKey}|{brandId}|{currency}" with a 60s TTL — long enough to
-     * absorb a redirect + capture + webhook burst for the same brand,
-     * short enough that admin-side changes propagate within a minute.
-     *
-     * @var array<string, array{expires_at: int, value: list<string>}>
-     */
-    private static $merchantAvailableCache = [];
-
-    /**
      * Read the merchant's available payment methods from CHIP, used by the
      * emit step to resolve alias groups (Card / DuitNow QR / Shopee Pay)
      * against what the brand actually supports. Returns an empty list on
      * any failure so the expander degrades gracefully.
      *
-     * Results are cached in-process for 60 seconds to avoid hammering the
-     * /payment_methods/ endpoint when both get_whitelisted_methods() and
-     * redirect() (or capture() and a future webhook) resolve the list
-     * for the same brand in quick succession.
+     * Results are cached via WHMCS\TransientData for 60 seconds. This is
+     * the right tool because:
+     *  - it persists across PHP-FPM worker recycling (an in-process static
+     *    cache would re-fetch after every worker restart);
+     *  - it is shared across all PHP workers serving the same WHMCS install;
+     *  - the WHMCS class enforces expiry by querying `expires > time()`,
+     *    so a stale value can never leak out;
+     *  - it lives in `tbltransientdata`, the WHMCS-native place for this
+     *    kind of short-lived cross-request state.
+     *
+     * The cache key namespaced under the gateway so two different
+     * chip-for-whmcs installs (or future modules) cannot collide.
      *
      * @param string $secretKey
      * @param string $brandId
@@ -381,11 +379,19 @@ class ChipHelpers
      */
     public static function fetch_merchant_available_methods(string $secretKey, string $brandId, string $currency): array
     {
-        $key = $secretKey . '|' . $brandId . '|' . $currency;
-        $now = time();
+        $transientKey = 'chip_available_methods_' . md5($secretKey . '|' . $brandId . '|' . $currency);
 
-        if (isset(self::$merchantAvailableCache[$key]) && self::$merchantAvailableCache[$key]['expires_at'] > $now) {
-            return self::$merchantAvailableCache[$key]['value'];
+        try {
+            $cached = \WHMCS\TransientData::getInstance()->retrieve($transientKey);
+        } catch (Exception $e) {
+            $cached = null;
+        }
+
+        if (is_string($cached) && $cached !== '') {
+            $decoded = json_decode($cached, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter($decoded, 'is_string'));
+            }
         }
 
         try {
@@ -402,10 +408,17 @@ class ChipHelpers
         }
 
         $value = array_values($result['available_payment_methods']);
-        self::$merchantAvailableCache[$key] = [
-            'expires_at' => $now + 60,
-            'value' => $value,
-        ];
+
+        try {
+            \WHMCS\TransientData::getInstance()->store(
+                $transientKey,
+                json_encode($value),
+                60
+            );
+        } catch (Exception $e) {
+            // Cache write failed (e.g. DB unavailable). Not fatal — the value
+            // is returned below; the next call will retry the store.
+        }
 
         return $value;
     }
