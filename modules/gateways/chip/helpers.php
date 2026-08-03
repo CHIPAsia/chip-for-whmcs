@@ -76,8 +76,6 @@ class ChipHelpers
             }
 
             // 'preferred' resolution
-            $members = $group['members'];
-
             if ($key === 'duitnow_qr') {
                 if (isset($available['dnqr']) && isset($available['duitnow_qr'])) {
                     $out[] = 'dnqr';
@@ -100,8 +98,10 @@ class ChipHelpers
                 continue;
             }
 
-            // Fallback (shouldn't reach here given the static registry)
-            foreach ($members as $member) {
+            // Future 'preferred' groups fall through to a static-membership
+            // emit, which preserves the original 'preferred' semantic: emit
+            // any member the merchant's brand supports.
+            foreach ($group['members'] as $member) {
                 if (isset($available[$member])) {
                     $out[] = $member;
                 }
@@ -178,24 +178,16 @@ class ChipHelpers
                         $methods_by_category[$found_cat][] = $apm;
                     }
 
-                    // Stash the full available list for the emit step.
+                    // Stash the full available list for the emit step. Type
+                    // 'System' makes WHMCS treat this as an internal value:
+                    // not rendered in the admin form, not user-editable, and
+                    // persisted to tblpaymentgateways with the underscore-
+                    // prefixed key.
                     $available_payment_method['_availablePaymentMethods'] = [
-                        'FriendlyName' => 'Available Payment Methods (internal)',
-                        'Type' => 'text',
-                        'Size' => '255',
+                        'FriendlyName' => '_availablePaymentMethods',
+                        'Type' => 'System',
                         'Default' => implode(',', $result['available_payment_methods']),
-                        'Description' => 'Hidden. Refreshed on every config save. Used by the emit step to resolve whitelist aliases.',
                     ];
-
-                    // Build a set of alias groups that have at least one
-                    // member present in the merchant's available list, so we
-                    // don't render a tickbox for a group the merchant can't use.
-                    $groups_with_members = [];
-                    foreach ($result['available_payment_methods'] as $apm) {
-                        if (isset($alias_member_to_group[$apm])) {
-                            $groups_with_members[$alias_member_to_group[$apm]] = true;
-                        }
-                    }
 
                     foreach ($methods_by_category as $category => $apms) {
                         $is_first_in_cat = true;
