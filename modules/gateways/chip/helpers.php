@@ -181,6 +181,12 @@ class ChipHelpers
                     'https' => 'Force HTTPS',
                 ],
             ],
+            'disableRecurring' => [
+                'FriendlyName' => 'Disable Recurring Payments',
+                'Type' => 'yesno',
+                'Default' => '',
+                'Description' => 'Tick to prevent saving cards and reject charges using previously saved tokens.',
+            ],
         ];
 
         if ($show_force_token_option) {
