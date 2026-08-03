@@ -1,5 +1,18 @@
 == Changelog ==
 
+## [1.7.2] - 2026-08-03
+
+### Changed
+- Payment method whitelist: collapsed card networks (Visa, Mastercard, Maestro) into a single "Card" tickbox that expands to the three networks supported by the merchant's brand.
+- Payment method whitelist: collapsed DuitNow QR variants into a single "DuitNow QR" tickbox. When the merchant's brand supports both `dnqr` and `duitnow_qr`, the emitted value is `dnqr`; otherwise the only supported value is emitted.
+- Payment method whitelist: collapsed Shopee Pay variants into a single "Shopee Pay" tickbox. When the merchant's brand supports `shopee_pay`, that value is emitted; otherwise the fallback is `razer_shopeepay`.
+
+### Removed
+- "Update client information" admin toggle. The corresponding code path was removed in 1.7.1. Existing database rows with this setting are silently ignored.
+
+### Migration notes
+- Existing per-method whitelist keys (`payment_method_whitelist__visa`, `__mastercard`, `__maestro`, `__dnqr`, `__duitnow_qr`, `__razer_shopeepay`, `__shopee_pay`) saved in `tblpaymentgateways` from earlier versions are silently ignored. Re-tick the new group tickboxes (`__card`, `__duitnow_qr`, `__shopee_pay`) after upgrading to apply whitelisting.
+
 = 1.7.1 2026-04-23 =
 * Refactor - Centralize gateway, callback, and redirect logic into ChipGateway class (Thin Gateway architecture)
 * Feature - Add multi-currency support with automatic conversion for payments, captures, and refunds

@@ -477,17 +477,26 @@ class ChipGateway
         ];
 
         if (isset($params['paymentWhitelist']) and $params['paymentWhitelist'] == 'on') {
-            $send_params['payment_method_whitelist'] = [];
-
             $keys = array_keys($params);
             $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
+            $ticked = [];
             foreach ($result as $key) {
                 if ($params[$key] == 'on') {
                     $key_array = explode('__', $key);
-                    $send_params['payment_method_whitelist'][] = end($key_array);
+                    $ticked[] = end($key_array);
                 }
             }
+
+            $merchantAvailable = [];
+            if (!empty($params['_availablePaymentMethods'])) {
+                $merchantAvailable = array_values(array_filter(
+                    array_map('trim', explode(',', (string) $params['_availablePaymentMethods'])),
+                    'strlen'
+                ));
+            }
+
+            $send_params['payment_method_whitelist'] = \ChipHelpers::expand_whitelist_aliases($ticked, $merchantAvailable);
         }
 
         if (isset($params['forceTokenization']) and $params['forceTokenization'] == 'on') {

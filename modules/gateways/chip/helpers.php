@@ -6,6 +6,111 @@ use WHMCS\Database\Capsule;
 
 class ChipHelpers
 {
+    /**
+     * Single source of truth for admin-tickbox alias groups.
+     *
+     * Each group renders as one tickbox in the admin UI, but expands to
+     * one or more raw CHIP `payment_method` values at emit time. The
+     * `expand` key controls resolution:
+     *   - 'static':    emit each member that the merchant's brand supports
+     *   - 'preferred': see expand_whitelist_aliases() for resolution rules
+     *
+     * @return array<string, array{label: string, members: list<string>, expand: string}>
+     */
+    private static function whitelist_alias_groups(): array
+    {
+        return [
+            'card' => [
+                'label' => 'Card',
+                'members' => ['visa', 'mastercard', 'maestro'],
+                'expand' => 'static',
+            ],
+            'duitnow_qr' => [
+                'label' => 'DuitNow QR',
+                'members' => ['dnqr', 'duitnow_qr'],
+                'expand' => 'preferred',
+            ],
+            'shopee_pay' => [
+                'label' => 'Shopee Pay',
+                'members' => ['razer_shopeepay', 'shopee_pay'],
+                'expand' => 'preferred',
+            ],
+        ];
+    }
+
+    /**
+     * Expand a list of ticked config keys into the raw CHIP payment_method
+     * values to send in `payment_method_whitelist`. Unknown keys are
+     * passed through unchanged. Result is deduplicated, preserving the
+     * order in which values first appear.
+     *
+     * @param list<string> $ticked Config-key tails (e.g. ['card', 'fpx_b2b1'])
+     * @param list<string> $merchantAvailable The merchant's available payment methods
+     *                                        (from /payment_methods/), used to
+     *                                        resolve 'preferred' groups
+     * @return list<string>
+     */
+    public static function expand_whitelist_aliases(array $ticked, array $merchantAvailable): array
+    {
+        $available = array_flip($merchantAvailable);
+        $groups = self::whitelist_alias_groups();
+        $out = [];
+
+        foreach ($ticked as $key) {
+            if (!isset($groups[$key])) {
+                $out[] = $key;
+
+                continue;
+            }
+
+            $group = $groups[$key];
+
+            if ($group['expand'] === 'static') {
+                foreach ($group['members'] as $member) {
+                    if (isset($available[$member])) {
+                        $out[] = $member;
+                    }
+                }
+
+                continue;
+            }
+
+            // 'preferred' resolution
+            $members = $group['members'];
+
+            if ($key === 'duitnow_qr') {
+                if (isset($available['dnqr']) && isset($available['duitnow_qr'])) {
+                    $out[] = 'dnqr';
+                } elseif (isset($available['dnqr'])) {
+                    $out[] = 'dnqr';
+                } elseif (isset($available['duitnow_qr'])) {
+                    $out[] = 'duitnow_qr';
+                }
+
+                continue;
+            }
+
+            if ($key === 'shopee_pay') {
+                if (isset($available['shopee_pay'])) {
+                    $out[] = 'shopee_pay';
+                } elseif (isset($available['razer_shopeepay'])) {
+                    $out[] = 'razer_shopeepay';
+                }
+
+                continue;
+            }
+
+            // Fallback (shouldn't reach here given the static registry)
+            foreach ($members as $member) {
+                if (isset($available[$member])) {
+                    $out[] = $member;
+                }
+            }
+        }
+
+        return array_values(array_unique($out));
+    }
+
     public static function get_config_params($gateway_name, $friendly_name, $params = [])
     {
         $list_time_zones = \DateTimeZone::listIdentifiers(\DateTimeZone::ALL);
@@ -48,6 +153,14 @@ class ChipHelpers
                         'Crypto' => ['crypto_coin'],
                     ];
 
+                    $alias_groups = self::whitelist_alias_groups();
+                    $alias_member_to_group = [];
+                    foreach ($alias_groups as $group_key => $group) {
+                        foreach ($group['members'] as $member) {
+                            $alias_member_to_group[$member] = $group_key;
+                        }
+                    }
+
                     $methods_by_category = [];
                     foreach ($result['available_payment_methods'] as $apm) {
                         if ($apm == 'razer') {
@@ -65,21 +178,42 @@ class ChipHelpers
                         $methods_by_category[$found_cat][] = $apm;
                     }
 
+                    // Stash the full available list for the emit step.
+                    $available_payment_method['_availablePaymentMethods'] = [
+                        'FriendlyName' => 'Available Payment Methods (internal)',
+                        'Type' => 'text',
+                        'Size' => '255',
+                        'Default' => implode(',', $result['available_payment_methods']),
+                        'Description' => 'Hidden. Refreshed on every config save. Used by the emit step to resolve whitelist aliases.',
+                    ];
+
+                    // Build a set of alias groups that have at least one
+                    // member present in the merchant's available list, so we
+                    // don't render a tickbox for a group the merchant can't use.
+                    $groups_with_members = [];
+                    foreach ($result['available_payment_methods'] as $apm) {
+                        if (isset($alias_member_to_group[$apm])) {
+                            $groups_with_members[$alias_member_to_group[$apm]] = true;
+                        }
+                    }
+
                     foreach ($methods_by_category as $category => $apms) {
                         $is_first_in_cat = true;
                         foreach ($apms as $apm) {
+                            // Skip apms that are members of an alias group;
+                            // the group is rendered once below.
+                            if (isset($alias_member_to_group[$apm])) {
+                                continue;
+                            }
+
                             $default = 'no';
 
                             // Logic for specific gateway defaults
-                            if ($gateway_name == 'chip_cards' && in_array($apm, ['maestro', 'mastercard', 'visa'])) {
-                                $default = 'yes';
-                            } elseif ($gateway_name == 'chip_fpx' && $apm == 'fpx') {
+                            if ($gateway_name == 'chip_fpx' && $apm == 'fpx') {
                                 $default = 'yes';
                             } elseif ($gateway_name == 'chip_fpxb2b1' && $apm == 'fpx_b2b1') {
                                 $default = 'yes';
-                            } elseif ($gateway_name == 'chip_dnqr' && $apm == 'duitnow_qr') {
-                                $default = 'yes';
-                            } elseif ($gateway_name == 'chip_ewallets' && in_array($apm, ['razer_atome', 'razer_grabpay', 'razer_maybankqr', 'razer_shopeepay', 'razer_tng'])) {
+                            } elseif ($gateway_name == 'chip_ewallets' && in_array($apm, ['razer_atome', 'razer_grabpay', 'razer_maybankqr', 'razer_tng'])) {
                                 $default = 'yes';
                             } elseif ($gateway_name == 'chip_crypto_coin' && $apm == 'crypto_coin') {
                                 $default = 'yes';
@@ -108,6 +242,41 @@ class ChipHelpers
                                 'Description' => $description,
                             ];
                         }
+                    }
+
+                    // Render one tickbox per alias group that has at least
+                    // one member present in the merchant's available list.
+                    // Render groups in the same order the categories appear
+                    // by walking the original available list in order.
+                    $rendered_groups = [];
+                    foreach ($result['available_payment_methods'] as $apm) {
+                        if (!isset($alias_member_to_group[$apm])) {
+                            continue;
+                        }
+                        $group_key = $alias_member_to_group[$apm];
+                        if (isset($rendered_groups[$group_key])) {
+                            continue;
+                        }
+                        $rendered_groups[$group_key] = true;
+
+                        $group = $alias_groups[$group_key];
+                        $default = 'no';
+
+                        if ($gateway_name == 'chip_cards' && $group_key === 'card') {
+                            $default = 'yes';
+                        } elseif ($gateway_name == 'chip_dnqr' && $group_key === 'duitnow_qr') {
+                            $default = 'yes';
+                        } elseif ($gateway_name == 'chip_ewallets' && $group_key === 'shopee_pay') {
+                            $default = 'yes';
+                        }
+
+                        $available_payment_method['payment_method_whitelist__' . $group_key] = [
+                            'FriendlyName' => 'Whitelist ' . $group['label'],
+                            'Type' => 'yesno',
+                            'Default' => $default,
+                            'Description' => 'Tick to enable ' . $group['label']
+                                . ($default === 'yes' ? ' (Default)' : ''),
+                        ];
                     }
                     $show_whitelist_option = true;
                 }
@@ -166,12 +335,6 @@ class ChipHelpers
                 'Default' => 'Asia/Kuala_Lumpur',
                 'Options' => $formatted_time_zones,
             ],
-            'updateClientInfo' => [
-                'FriendlyName' => 'Update client information',
-                'Type' => 'yesno',
-                'Description' => 'Tick to update client information on purchase creation.',
-                'Default' => 'on',
-            ],
             'systemUrlHttps' => [
                 'FriendlyName' => 'System URL Mode',
                 'Type' => 'dropdown',
@@ -218,14 +381,22 @@ class ChipHelpers
         $keys = array_keys($params);
         $result = preg_grep('/payment_method_whitelist__.*/', $keys);
 
-        $configured_payment_methods = [];
+        $ticked = [];
         foreach ($result as $key) {
             if ($params[$key] == 'on') {
                 $key_array = explode('__', $key);
-                $configured_payment_methods[] = end($key_array);
+                $ticked[] = end($key_array);
             }
         }
 
-        return $configured_payment_methods;
+        $merchantAvailable = [];
+        if (!empty($params['_availablePaymentMethods'])) {
+            $merchantAvailable = array_values(array_filter(
+                array_map('trim', explode(',', (string) $params['_availablePaymentMethods'])),
+                'strlen'
+            ));
+        }
+
+        return self::expand_whitelist_aliases($ticked, $merchantAvailable);
     }
 }
