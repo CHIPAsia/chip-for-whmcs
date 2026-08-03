@@ -199,6 +199,15 @@ class ChipGateway
             }
         }
 
+        if (($params['disableRecurring'] ?? '') === 'on') {
+            \logActivity('CHIP Capture Rejected: Recurring payments disabled for gateway ' . $gateway_name);
+
+            return [
+                'status' => 'declined',
+                'declinereason' => 'Recurring payments are disabled for this gateway.',
+            ];
+        }
+
         try {
             $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
