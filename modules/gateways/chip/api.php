@@ -70,7 +70,7 @@ class ChipAPI
             [
                 'brand_id' => $this->brand_id,
                 'currency' => $currency,
-                'amount' => 200,
+                'amount' => 1000,
                 'recurring' => 'true',
             ]
         );
