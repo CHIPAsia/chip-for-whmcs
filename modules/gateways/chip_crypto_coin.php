@@ -16,14 +16,14 @@ require_once __DIR__ . '/chip/gateway.php';
 function chip_crypto_coin_MetaData()
 {
     return [
-        'DisplayName' => 'CHIP Crypto Coin',
+        'DisplayName' => 'CHIP Stablecoin',
         'APIVersion' => '1.1',
     ];
 }
 
 function chip_crypto_coin_config($params = [])
 {
-    return ChipHelpers::get_config_params('chip_crypto_coin', 'Crypto Coin', $params);
+    return ChipHelpers::get_config_params('chip_crypto_coin', 'Stablecoin', $params);
 }
 
 function chip_crypto_coin_config_validate(array $params)
@@ -32,7 +32,7 @@ function chip_crypto_coin_config_validate(array $params)
 
 function chip_crypto_coin_link($params)
 {
-    return ChipGateway::link($params, 'chip_crypto_coin', 'paywithcrypto.png', 'Pay with Crypto Coin');
+    return ChipGateway::link($params, 'chip_crypto_coin', 'paywithcrypto.png', 'Pay with Stablecoin');
 }
 
 function chip_crypto_coin_refund($params)
