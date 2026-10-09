@@ -501,13 +501,21 @@ class ChipGateway
                 }
             }
 
+            // Resolve against the ORDER's amount (in sen) so a method whose minimum
+            // exceeds this invoice is resolved out, and so a method that only
+            // becomes available at this amount is resolved in.
+            $amount_sen = (int) round(((float) $purchase_amount) * 100);
+
+            $availableKnown = false;
             $merchantAvailable = \ChipHelpers::fetch_merchant_available_methods(
                 (string) ($params['secretKey'] ?? ''),
                 (string) ($params['brandId'] ?? ''),
-                $currency_code
+                $currency_code,
+                $amount_sen,
+                $availableKnown
             );
 
-            $send_params['payment_method_whitelist'] = \ChipHelpers::expand_whitelist_aliases($ticked, $merchantAvailable);
+            $send_params['payment_method_whitelist'] = \ChipHelpers::expand_whitelist_aliases($ticked, $merchantAvailable, $availableKnown);
         }
 
         if (isset($params['forceTokenization']) and $params['forceTokenization'] == 'on') {
