@@ -48,9 +48,12 @@ class ChipHelpers
      * @param list<string> $merchantAvailable The merchant's available payment methods
      *                                        (from /payment_methods/), used to
      *                                        resolve 'preferred' groups
+     * @param bool $availableKnown True when $merchantAvailable is authoritative (the
+     *                             availability lookup succeeded). When false, the
+     *                             'preferred' groups fail OPEN — see get_whitelisted_methods().
      * @return list<string>
      */
-    public static function expand_whitelist_aliases(array $ticked, array $merchantAvailable): array
+    public static function expand_whitelist_aliases(array $ticked, array $merchantAvailable, bool $availableKnown = true): array
     {
         $available = array_flip($merchantAvailable);
         $groups = self::whitelist_alias_groups();
@@ -83,6 +86,12 @@ class ChipHelpers
                     $out[] = 'dnqr';
                 } elseif (isset($available['duitnow_qr'])) {
                     $out[] = 'duitnow_qr';
+                } elseif (!$availableKnown) {
+                    // Availability unknown (the /payment_methods/ lookup failed).
+                    // Fail OPEN: emit the CHIP-preferred member instead of dropping
+                    // the method. Dropping it removes DuitNow QR from the merchant's
+                    // whitelist entirely for the duration of the outage.
+                    $out[] = 'dnqr';
                 }
 
                 continue;
@@ -93,6 +102,8 @@ class ChipHelpers
                     $out[] = 'shopee_pay';
                 } elseif (isset($available['razer_shopeepay'])) {
                     $out[] = 'razer_shopeepay';
+                } elseif (!$availableKnown) {
+                    $out[] = 'shopee_pay';
                 }
 
                 continue;
@@ -109,6 +120,24 @@ class ChipHelpers
         }
 
         return array_values(array_unique($out));
+    }
+
+    /**
+     * Cache key for the availability lookup. Keyed on brand + currency + amount
+     * because the answer depends on the amount: a method with a minimum above the
+     * amount is absent from the response, so a coarse key would leak an
+     * insufficient-amount answer into an order that can afford the method (and
+     * vice versa).
+     *
+     * @param string $secretKey
+     * @param string $brandId
+     * @param string $currency
+     * @param int    $amount    Amount in sen.
+     * @return string
+     */
+    private static function availability_cache_key(string $secretKey, string $brandId, string $currency, int $amount): string
+    {
+        return 'chip_available_methods_' . md5($secretKey . '|' . $brandId . '|' . $currency . '|' . $amount);
     }
 
     public static function get_config_params($gateway_name, $friendly_name, $params = [])
@@ -375,11 +404,24 @@ class ChipHelpers
      * @param string $secretKey
      * @param string $brandId
      * @param string $currency
+     * @param int    $amount    Amount in sen to probe with (see get_whitelisted_methods()).
+     * @param bool   $known     Out-param: true when the answer is authoritative
+     *                          (lookup succeeded, or a cached answer was used);
+     *                          false when the method list is unknown and callers
+     *                          must fail OPEN.
      * @return list<string>
      */
-    public static function fetch_merchant_available_methods(string $secretKey, string $brandId, string $currency): array
+    public static function fetch_merchant_available_methods(string $secretKey, string $brandId, string $currency, int $amount = 1000, bool &$known = true): array
     {
-        $transientKey = 'chip_available_methods_' . md5($secretKey . '|' . $brandId . '|' . $currency);
+        // No credentials: whatever the config holds cannot be validated against
+        // the merchant's live method set, so the answer is unknown.
+        if ($secretKey === '' || $brandId === '') {
+            $known = false;
+
+            return [];
+        }
+
+        $transientKey = self::availability_cache_key($secretKey, $brandId, $currency, $amount);
 
         try {
             $cached = \WHMCS\TransientData::getInstance()->retrieve($transientKey);
@@ -390,23 +432,31 @@ class ChipHelpers
         if (is_string($cached) && $cached !== '') {
             $decoded = json_decode($cached, true);
             if (is_array($decoded)) {
+                $known = true;
+
                 return array_values(array_filter($decoded, 'is_string'));
             }
         }
 
         try {
             $chip = \ChipAPI::get_instance($secretKey, $brandId);
-            $result = $chip->payment_methods($currency);
+            $result = $chip->payment_methods($currency, $amount);
         } catch (Exception $e) {
             \logActivity('CHIP: failed to fetch merchant payment methods: ' . $e->getMessage());
+            $known = false;
 
             return [];
         }
 
         if (!is_array($result) || !isset($result['available_payment_methods']) || !is_array($result['available_payment_methods'])) {
+            $known = false;
+
             return [];
         }
 
+        // An authoritative answer, even when the list is empty (a brand with no
+        // methods enabled) — the empty list is then a real answer, not a failure.
+        $known = true;
         $value = array_values($result['available_payment_methods']);
 
         try {
@@ -423,7 +473,7 @@ class ChipHelpers
         return $value;
     }
 
-    public static function get_whitelisted_methods($params)
+    public static function get_whitelisted_methods($params, ?int $amount = null)
     {
         if ($params['paymentWhitelist'] != 'on') {
             return [];
@@ -440,12 +490,19 @@ class ChipHelpers
             }
         }
 
-        $merchantAvailable = self::fetch_merchant_available_methods(
-            (string) ($params['secretKey'] ?? ''),
-            (string) ($params['brandId'] ?? ''),
-            (string) ($params['currency'] ?? 'MYR')
-        );
+        $secretKey = (string) ($params['secretKey'] ?? '');
+        $brandId = (string) ($params['brandId'] ?? '');
+        $currency = (string) ($params['currency'] ?? 'MYR');
 
-        return self::expand_whitelist_aliases($ticked, $merchantAvailable);
+        // Resolve against the ORDER's amount when the caller knows it, so a method
+        // whose minimum exceeds the order total is resolved out. Fall back to the
+        // safe default (RM 10) when the caller has no amount (the config screen,
+        // which is not order-scoped and must show every method the brand has).
+        $amount = ($amount !== null && $amount > 0) ? $amount : 1000;
+
+        $availableKnown = false;
+        $merchantAvailable = self::fetch_merchant_available_methods($secretKey, $brandId, $currency, $amount, $availableKnown);
+
+        return self::expand_whitelist_aliases($ticked, $merchantAvailable, $availableKnown);
     }
 }

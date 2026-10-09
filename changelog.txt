@@ -1,5 +1,16 @@
 == Changelog ==
 
+## [1.7.4] - 2026-10-09
+
+### Fixed
+- Payment method whitelist: the DuitNow QR and Shopee Pay groups are now resolved against the **order amount** instead of a fixed RM 10. A method whose minimum exceeds the order total is resolved to its sibling variant (or out) correctly, and a method that only becomes available above RM 10 is no longer missed. The admin configuration screen keeps the safe default (RM 10), since it is not order-scoped.
+- Payment method whitelist: a failed availability lookup (CHIP API error, timeout, network failure, or missing credentials) no longer silently **removes** the DuitNow QR / Shopee Pay group from the whitelist. The resolution now fails **OPEN** — the CHIP-preferred variant is emitted so the method stays payable. A genuine empty answer from CHIP still resolves correctly.
+- The availability cache is now keyed per amount, so an answer resolved for one order total cannot be reused for a differently-priced order.
+
+### Changed
+- `ChipAPI::payment_methods()` accepts an optional `$amount` (sen) parameter, defaulting to 1000 for backwards compatibility.
+- The API base URI is overridable via a `CHIP_API_BASE_URI` constant, so a test harness can point the client at a local stub. Production behaviour is unchanged.
+
 ## [1.7.3] - 2026-08-27
 
 ### Changed

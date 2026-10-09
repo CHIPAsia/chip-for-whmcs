@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 if (!defined('CHIP_MODULE_VERSION')) {
-    define('CHIP_MODULE_VERSION', '1.7.3');
+    define('CHIP_MODULE_VERSION', '1.7.4');
 }
 
 require_once __DIR__ . '/exceptions.php';
@@ -29,8 +29,14 @@ class ChipAPI
     {
         $this->private_key = $private_key;
         $this->brand_id = $brand_id;
+
+        // The base URI is overridable so a test harness can point the client at a
+        // local stub. Defaults to production; defining CHIP_API_BASE_URI has no
+        // effect unless something deliberately defines it before the class loads.
+        $base_uri = defined('CHIP_API_BASE_URI') ? CHIP_API_BASE_URI : 'https://gate.chip-in.asia/api/v1/';
+
         $this->client = new \GuzzleHttp\Client([
-            'base_uri' => 'https://gate.chip-in.asia/api/v1/',
+            'base_uri' => $base_uri,
             'headers' => [
                 'Content-type' => 'application/json',
                 'Authorization' => 'Bearer ' . $this->private_key,
@@ -49,7 +55,7 @@ class ChipAPI
         return $this->call('POST', "purchases/{$payment_id}/charge/", $params);
     }
 
-    public function payment_methods(string $currency): ?array
+    public function payment_methods(string $currency, int $amount = 1000): ?array
     {
         return $this->call(
             'GET',
@@ -57,7 +63,7 @@ class ChipAPI
             [
                 'brand_id' => $this->brand_id,
                 'currency' => $currency,
-                'amount' => 1000,
+                'amount' => $amount,
             ]
         );
     }
