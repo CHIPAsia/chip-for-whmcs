@@ -29,6 +29,11 @@ jobs:
       - name: Create Release Archive
         run: |
           zip -r chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip modules/ LICENSE
+          # Also publish a VERSION-INDEPENDENT copy. GitHub resolves
+          # /releases/latest/download/<asset> against the LATEST release, so a versioned name
+          # (chip-for-whmcs-v1.7.4.zip) starts returning 404 the moment the next release is
+          # published. This stable name gives merchants one permanent download URL.
+          cp chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip chip-for-whmcs.zip
 
       - name: Upload Artifact (PR)
         if: github.event_name == 'pull_request'
@@ -41,7 +46,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
-          files: chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip
+          files: |
+            chip-for-whmcs-${{ steps.get_version.outputs.VERSION }}.zip
+            chip-for-whmcs.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
