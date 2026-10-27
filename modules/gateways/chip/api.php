@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 if (!defined('CHIP_MODULE_VERSION')) {
-    define('CHIP_MODULE_VERSION', '1.7.4');
+    define('CHIP_MODULE_VERSION', '1.7.5');
 }
 
 require_once __DIR__ . '/exceptions.php';
