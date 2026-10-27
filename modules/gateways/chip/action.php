@@ -35,8 +35,13 @@ class ChipAction
             return false;
         }
 
-        $lock = Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 15) as `lock`")[0];
-        if (!$lock || $lock->lock != 1) {
+        // Non-blocking on purpose. Two requests for the same payment (the callback and a retry, or
+        // the invoice page and the callback) must never queue behind each other: the gateway's
+        // callback timeout is shorter than the work below, so waiting here turned every retry of a
+        // slow first attempt into another timeout. A miss means another request is already
+        // processing this payment, and the caller turns that into a retryable HTTP 503.
+        $lock = Capsule::select('SELECT GET_LOCK(?, 0) as `lock`', ["chip_payment_$payment_id"])[0];
+        if (!$lock || (int)$lock->lock !== 1) {
             return false;
         }
 
@@ -173,7 +178,7 @@ class ChipAction
                 return true;
             });
         } finally {
-            Capsule::select("SELECT RELEASE_LOCK('chip_payment_$payment_id');");
+            Capsule::select('SELECT RELEASE_LOCK(?)', ["chip_payment_$payment_id"]);
         }
     }
 

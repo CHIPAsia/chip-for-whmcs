@@ -386,7 +386,13 @@ class ChipGateway
             die('Status is not paid');
         }
 
-        \ChipAction::complete_payment($params, $payment);
+        if (!\ChipAction::complete_payment($params, $payment)) {
+            // Not processed. Either another request is still working on this payment (the lock is
+            // non-blocking now) or WHMCS refused it. Answer with a retryable status: replying
+            // "Done" here would stop the gateway's retries while the payment is still uncredited.
+            \header('Retry-After: 60', true, 503);
+            die('Payment not completed, retry later');
+        }
 
         echo 'Done';
     }
