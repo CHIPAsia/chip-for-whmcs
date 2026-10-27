@@ -283,34 +283,51 @@ class ChipGateway
 
             $payment_id = $create_payment['id'];
 
-            Capsule::select("SELECT GET_LOCK('chip_payment_$payment_id', 10);");
+            // The lock only has to stop two requests from recording the same payment at once. It
+            // used to be taken here and never released, so a capture callback arriving while this
+            // request was still running could block on it (15 s in complete_payment()) and time
+            // out. Take it with a short bounded wait and always release it, including on the early
+            // returns below. If it cannot be taken, carry on: the charge has already happened at
+            // the gateway, so refusing here would hide a real payment.
+            $lock_name = "chip_payment_$payment_id";
+            $locked = (int)Capsule::select('SELECT GET_LOCK(?, 3) as `lock`', [$lock_name])[0]->lock === 1;
 
-            $account = Capsule::table('tblaccounts')
-                ->where('transid', $payment_id)
-                ->take(1)
-                ->first();
-
-            if ($account) {
-                return 'success';
+            if (!$locked) {
+                \logActivity("CHIP Capture Warning: payment {$payment_id} is locked by another request.");
             }
 
-            if ($charge_payment['status'] == 'paid') {
-                $fee = $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100;
-                if (isset($params['convertto'])) {
-                    $from_currency = Capsule::table('tblcurrencies')->where('code', $currency_code)->first();
-                    $to_currency_id = (int)$params['clientdetails']['currency'];
+            try {
+                $account = Capsule::table('tblaccounts')
+                    ->where('transid', $payment_id)
+                    ->take(1)
+                    ->first();
 
-                    if ($from_currency) {
-                        $fee = convertCurrency((float)$fee, (int)$from_currency->id, $to_currency_id);
-                    }
+                if ($account) {
+                    return 'success';
                 }
 
-                return ["status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $fee];
-            } elseif ($charge_payment['status'] == 'pending_charge') {
-                return ["status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
-            }
+                if ($charge_payment['status'] == 'paid') {
+                    $fee = $charge_payment['transaction_data']['attempts'][0]['fee_amount'] / 100;
+                    if (isset($params['convertto'])) {
+                        $from_currency = Capsule::table('tblcurrencies')->where('code', $currency_code)->first();
+                        $to_currency_id = (int)$params['clientdetails']['currency'];
 
-            return ["status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
+                        if ($from_currency) {
+                            $fee = convertCurrency((float)$fee, (int)$from_currency->id, $to_currency_id);
+                        }
+                    }
+
+                    return ["status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $fee];
+                } elseif ($charge_payment['status'] == 'pending_charge') {
+                    return ["status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
+                }
+
+                return ["status" => "declined", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
+            } finally {
+                if ($locked) {
+                    Capsule::select('SELECT RELEASE_LOCK(?)', [$lock_name]);
+                }
+            }
         } catch (Exception $e) {
             \logActivity('CHIP Capture Error: ' . $e->getMessage());
 
