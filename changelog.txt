@@ -1,5 +1,10 @@
 == Changelog ==
 
+## [1.7.5] - 2026-10-27
+
+### Fixed
+- Callback/redirect: a second purchase for an invoice that is already fully paid is now treated as an idempotent success instead of failing with HTTP 500. The amount check previously threw `NotServicable`, so the gateway saw a server error and retried for hours (observed: 8 attempts over 36 hours) while the duplicate payment was never credited and never surfaced to anyone. The duplicate is now written to the WHMCS activity log as `CHIP Duplicate Payment` with the payment id, the amount, and the transaction that was already credited, so it can be identified and refunded. Genuine amount mismatches on an unpaid invoice still throw as before.
+
 ## [1.7.4] - 2026-10-09
 
 ### Fixed

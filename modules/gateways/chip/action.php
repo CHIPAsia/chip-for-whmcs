@@ -59,6 +59,32 @@ class ChipAction
                     return true;
                 }
 
+                $invoice = Invoice::findOrFail($params['invoiceid']);
+
+                // A second purchase for an invoice that is already fully paid happens when
+                // the payer completes checkout twice, typically because the first callback
+                // was slow enough that the invoice still looked unpaid. The money is with us
+                // but there is nothing left to credit, so the amount check below would throw,
+                // return HTTP 500, and the gateway would retry for hours. Treat it as an
+                // idempotent success and leave an audit trail so the duplicate can be refunded.
+                if ($invoice->balance <= 0) {
+                    $credited = Capsule::table('tblaccounts')
+                        ->where('invoiceid', $params['invoiceid'])
+                        ->orderBy('id', 'desc')
+                        ->first(['transid', 'amountin']);
+
+                    \logActivity(sprintf(
+                        'CHIP Duplicate Payment: invoice #%d is already fully paid. Payment %s (%s %s) was NOT credited%s. A refund may be required.',
+                        $params['invoiceid'],
+                        $payment_id,
+                        $payment['payment']['currency'],
+                        number_format($payment['payment']['amount'] / 100, 2),
+                        $credited ? ' - credited transaction: ' . $credited->transid : ''
+                    ));
+
+                    return true;
+                }
+
                 $history = new \WHMCS\Billing\Payment\Transaction\History();
                 $history->invoice_id = $params['invoiceid'];
                 $history->gateway = $params['name'];
@@ -68,7 +94,6 @@ class ChipAction
                 $history->completed = true;
                 $history->save();
 
-                $invoice = Invoice::findOrFail($params['invoiceid']);
                 $client = Client::find($invoice->userid);
                 $client_currency_id = (int)$client->currencyId;
 
