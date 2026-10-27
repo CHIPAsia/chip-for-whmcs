@@ -1,5 +1,10 @@
 == Changelog ==
 
+## [1.7.7] - 2026-10-27
+
+### Fixed
+- Recurring capture (`capture()`): the per-payment advisory lock was acquired and **never released**, and its result was ignored. A capture callback arriving while a capture was still running could therefore block on that lock and time out — the same stall that 1.7.6 removed from the callback. The lock is now taken with a short bounded wait (3 s instead of 10 s) and always released, including on the early returns. If it cannot be taken, the capture continues and logs a warning: the charge has already happened at the gateway, so refusing there would hide a real payment.
+
 ## [1.7.6] - 2026-10-27
 
 ### Fixed
