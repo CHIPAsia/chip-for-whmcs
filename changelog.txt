@@ -1,5 +1,12 @@
 == Changelog ==
 
+## [1.7.6] - 2026-10-27
+
+### Fixed
+- Callback: the per-payment advisory lock is now **non-blocking**. A callback that arrived while another request was still processing the same payment used to wait up to 15 seconds for the lock — longer than the gateway's callback timeout — so one slow attempt made every retry time out as well. A lock miss now returns immediately.
+- Callback: when the payment is not completed (lock miss, or WHMCS refusing the payment) the endpoint now answers HTTP 503 with `Retry-After` instead of `Done`. Replying success there stopped the gateway's retries while the payment was still uncredited.
+- The lock name and release are passed as bound parameters instead of being interpolated into the SQL.
+
 ## [1.7.5] - 2026-10-27
 
 ### Fixed
