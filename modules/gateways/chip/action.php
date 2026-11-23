@@ -13,6 +13,14 @@ use WHMCS\User\Client;
 
 class ChipAction
 {
+    /**
+     * Confirmation emails prepared during complete_payment() and sent only after the HTTP response
+     * has been flushed to the gateway.
+     *
+     * @var list<array{template: string, invoiceid: int, extra: array}>
+     */
+    private static array $pending_emails = [];
+
     public static function complete_payment($params, $payment)
     {
         if (\is_array($payment)) { // success callback
@@ -202,14 +210,68 @@ class ChipAction
                         }
                     }
 
-                    $emailExtra = ["payMethod" => $invoice->payMethod];
-                    \sendMessage($emailTemplate, $params['invoiceid'], $emailExtra);
+                    // Queued rather than sent: the SMTP round trip is the slowest thing left after
+                    // the credit is committed, and this endpoint's response time is what decides
+                    // whether the gateway retries. See send_pending_emails_after_response().
+                    self::$pending_emails[] = [
+                        'template' => $emailTemplate,
+                        'invoiceid' => (int) $params['invoiceid'],
+                        'extra' => ["payMethod" => $invoice->payMethod],
+                    ];
                 }
 
                 return true;
             });
         } finally {
             Capsule::select('SELECT RELEASE_LOCK(?)', ["chip_payment_$payment_id"]);
+        }
+    }
+
+    /**
+     * Send the confirmation emails queued during complete_payment(), after the response has been
+     * flushed.
+     *
+     * The gateway only needs to know that the credit was committed. Sending mail inside the request
+     * made a slow SMTP server stretch the whole callback past the gateway's delivery timeout: the
+     * delivery was marked failed and retried, the merchant's WHMCS spent ~2 minutes still showing the
+     * invoice unpaid, and an automatic capture in that window charged the saved card a second time.
+     * Answering first removes that coupling; a mail failure is logged and never fails the callback.
+     */
+    public static function send_pending_emails_after_response(): void
+    {
+        if (self::$pending_emails === []) {
+            return;
+        }
+
+        if (\function_exists('fastcgi_finish_request')) {
+            \ignore_user_abort(true);
+
+            while (\ob_get_level() > 0) {
+                \ob_end_flush();
+            }
+
+            \flush();
+            \fastcgi_finish_request();
+        }
+
+        self::send_pending_emails();
+    }
+
+    /**
+     * Send the queued confirmation emails now. Used by the browser-return path (link()), where the
+     * response has not been produced yet and there is nothing to flush.
+     */
+    public static function send_pending_emails(): void
+    {
+        $queued = self::$pending_emails;
+        self::$pending_emails = [];
+
+        foreach ($queued as $email) {
+            try {
+                \sendMessage($email['template'], $email['invoiceid'], $email['extra']);
+            } catch (Exception $e) {
+                \logActivity('CHIP Confirmation Email Error for Invoice #' . $email['invoiceid'] . ': ' . $e->getMessage());
+            }
         }
     }
 

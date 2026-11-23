@@ -84,6 +84,9 @@ class ChipGateway
             $payment_id = Session::getAndDelete($gateway_name . '_' . $params['invoiceid']);
 
             if (\ChipAction::complete_payment($params, $payment_id)) {
+                // Browser return path: the response is still to be produced, so send now.
+                \ChipAction::send_pending_emails();
+
                 return '<script>window.location.reload();</script>';
             }
         }
@@ -452,6 +455,11 @@ class ChipGateway
         }
 
         echo 'Done';
+
+        // The credit is committed; the confirmation email is the only slow work left. Send it once
+        // the response is flushed, so a slow mail server cannot push this callback past the
+        // gateway's delivery timeout.
+        \ChipAction::send_pending_emails_after_response();
     }
 
     public static function redirect()
