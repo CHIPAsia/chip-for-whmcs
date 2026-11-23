@@ -2,10 +2,66 @@
 
 declare(strict_types=1);
 
+use WHMCS\Config\Setting as WHMCSSetting;
 use WHMCS\Database\Capsule;
 
 class ChipHelpers
 {
+    /**
+     * Prefix of the per-payment marker written by capture() when it hands WHMCS a successful
+     * capture result.
+     *
+     * WHMCS credits a capture itself: ccProcessing() -> captureCCPayment() calls
+     * Invoice::addPayment() with the transid this module returned. The module also asks the
+     * gateway to POST purchase.paid to the capture callback, and that callback used to credit
+     * the invoice as well - two writes to one charge, which raced whenever the callback landed
+     * before WHMCS called addPayment() (exactly what a slow capture request produces: two
+     * tblaccounts rows with one transid and a negative invoice balance).
+     *
+     * The marker is written BEFORE capture() returns to WHMCS, so a callback that arrives later
+     * always sees it and can tell "WHMCS owns this credit" apart from "capture() left the charge
+     * pending or declined, so this callback is the only credit path".
+     */
+    private const CAPTURE_ACK_PREFIX = 'CHIP_CAPTURE_ACK_';
+
+    /** Markers are only meaningful until the capture callback has been delivered and retried. */
+    private const CAPTURE_ACK_TTL = 1209600; // 14 days
+
+    public static function mark_capture_acknowledged(string $payment_id): void
+    {
+        WHMCSSetting::setValue(self::CAPTURE_ACK_PREFIX . $payment_id, (string) time());
+
+        self::sweep_capture_acknowledgements();
+    }
+
+    public static function capture_was_acknowledged(string $payment_id): bool
+    {
+        return WHMCSSetting::getValue(self::CAPTURE_ACK_PREFIX . $payment_id) !== null;
+    }
+
+    /**
+     * Only a capture callback can be a second credit path for a charge WHMCS already recorded.
+     * Kept as a named predicate so the rule is testable without a WHMCS install.
+     */
+    public static function capture_callback_should_credit(bool $is_capture_callback, string $payment_id): bool
+    {
+        return !($is_capture_callback && self::capture_was_acknowledged($payment_id));
+    }
+
+    /**
+     * Keep the markers bounded. Epoch values are ten digits until 2286, so the string
+     * comparison is also the numeric one.
+     */
+    private static function sweep_capture_acknowledgements(): void
+    {
+        $cutoff = time() - self::CAPTURE_ACK_TTL;
+
+        Capsule::table('tblconfiguration')
+            ->where('setting', 'like', self::CAPTURE_ACK_PREFIX . '%')
+            ->where('value', '<', (string) $cutoff)
+            ->delete();
+    }
+
     /**
      * Single source of truth for admin-tickbox alias groups.
      *
