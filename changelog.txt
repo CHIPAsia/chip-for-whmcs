@@ -5,6 +5,9 @@
 ### Fixed
 - Capture (`capture()`): an invoice the gateway has already collected money for could be charged **again**. WHMCS runs a capture when an invoice looks unpaid, and `capture()` creates a new gateway purchase on every attempt, so a first payment that the merchant's WHMCS had not seen yet — the `purchase.paid` callback timing out at 02:19:15 and only landing at 02:21:05 is the case that surfaced this — left the invoice unpaid in WHMCS long enough for an automatic capture to charge the same saved card a second time. The module now records which purchase an invoice is paying through (in `tblconfiguration`, swept after 7 days) and refuses to charge when the gateway reports that purchase as `paid`, logging `CHIP Capture Blocked` so the invoice is credited from the existing payment instead. The check fails open: if the lookup errors, the capture proceeds, because refusing there would leave a genuinely unpaid invoice uncollected.
 
+### Changed
+- Callback: the response is now sent to the gateway before the `Credit Card Payment Confirmation` email. Sending mail inside the request meant a slow SMTP server stretched the callback past the gateway's delivery timeout — the delivery was marked failed and retried, and the merchant's WHMCS kept the invoice unpaid for the ~2 minutes until the retry landed (long enough for an automatic capture to charge the card again). A mail failure is logged (`CHIP Confirmation Email Error`) and no longer fails the callback. The browser-return path sends the same email inline, unchanged.
+
 ## [1.7.8] - 2026-11-23
 
 ### Fixed
