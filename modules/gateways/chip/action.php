@@ -185,16 +185,29 @@ class ChipAction
     public static function retrieve_public_key($params)
     {
         $ten_secret_key = substr($params['secretKey'], 0, 10);
+        $setting_name = "CHIP_PUBLIC_KEY_" . $ten_secret_key;
 
-        if ($public_key = WHMCSSetting::getValue("CHIP_PUBLIC_KEY_" . $ten_secret_key)) {
-            return $public_key;
+        if ($public_key = WHMCSSetting::getValue($setting_name)) {
+            // A cached key that cannot be parsed makes openssl_verify() fail for every callback, and
+            // the endpoint then answers 403 "Invalid X Signature" without crediting anything - the
+            // payment is taken and the invoice is never marked paid. Treat an unusable cache entry as
+            // missing so an installation that cached a bad key heals itself on the next callback.
+            if (self::is_usable_public_key((string) $public_key)) {
+                return $public_key;
+            }
+
+            WHMCSSetting::where("setting", $setting_name)->delete();
         }
 
         try {
             $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
-            $public_key = \str_replace('\n', "\n", $chip->public_key());
+            $public_key = self::normalise_public_key((string) $chip->public_key());
 
-            WHMCSSetting::setValue("CHIP_PUBLIC_KEY_" . $ten_secret_key, $public_key);
+            if (!self::is_usable_public_key($public_key)) {
+                throw new ChipAPIException('CHIP API returned a public key that cannot be parsed');
+            }
+
+            WHMCSSetting::setValue($setting_name, $public_key);
 
             return $public_key;
         } catch (Exception $e) {
@@ -202,6 +215,37 @@ class ChipAction
 
             return '';
         }
+    }
+
+    /**
+     * The gateway answers GET /public_key/ with a JSON string, i.e. the PEM wrapped in double quotes
+     * with its newlines escaped ("-----BEGIN PUBLIC KEY-----\nMIIB..."). The old code only unescaped
+     * the newlines and kept the quotes, so the cached value was never a valid PEM and every callback
+     * failed signature verification. Decode the JSON string when that is what arrived; a plain PEM
+     * body is passed through.
+     */
+    private static function normalise_public_key(string $raw): string
+    {
+        $trimmed = trim($raw);
+
+        if ($trimmed !== '' && $trimmed[0] === '"') {
+            $decoded = json_decode($trimmed, true);
+
+            if (is_string($decoded) && $decoded !== '') {
+                return trim($decoded);
+            }
+        }
+
+        return trim(\str_replace('\n', "\n", $raw));
+    }
+
+    private static function is_usable_public_key(string $public_key): bool
+    {
+        if (trim($public_key) === '') {
+            return false;
+        }
+
+        return @openssl_pkey_get_public($public_key) !== false;
     }
 
     public static function clean_up_public_key()
