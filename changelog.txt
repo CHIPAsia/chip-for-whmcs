@@ -1,5 +1,13 @@
 == Changelog ==
 
+## [1.7.8] - 2026-11-23
+
+### Fixed
+- Recurring capture (`capture()` + capture callback): a successful capture could be credited **twice**. WHMCS credits a capture itself (`captureCCPayment()` → `Invoice::addPayment()` with the transid this module returns), and the capture callback (`?capturecallback=true`) credited the same payment again through `ChipAction::complete_payment()`. The two writes only conflict when the callback arrives before WHMCS reaches `addPayment()` — routine on a slow capture request — and the result is two `tblaccounts` rows with the same transaction id and a **negative invoice balance**. `capture()` now records that it handed WHMCS a successful capture (`CHIP_CAPTURE_ACK_<payment id>` in `tblconfiguration`, swept after 14 days) and the capture callback credits only when that record is absent.
+- Capture callback: a capture that `capture()` left **pending** (issuer 3DS/SCA) or **declined** (including a `charge_payment()` timeout after the money moved) carries no record, so the callback is still the credit path for it — WHMCS only credits a `success`. That path did not actually work: WHMCS writes a `Transaction\History` row ("Automatic Payment Attempt") for every capture attempt, including the ones it never credits, and the callback's idempotency check read that attempt record as "already credited" — the invoice stayed `Payment Pending` with the money taken. A capture callback now decides on the money row (`tblaccounts`) instead.
+- Capture callback: when the record is present but the invoice has no account row for the payment, the module writes `CHIP Capture Warning: invoice #N is not credited` to the Activity Log so the uncredited charge is visible instead of silent.
+- Capture callback: no longer sends a second "Credit Card Payment Confirmation" email for captures WHMCS already emailed about.
+
 ## [1.7.7] - 2026-10-27
 
 ### Fixed

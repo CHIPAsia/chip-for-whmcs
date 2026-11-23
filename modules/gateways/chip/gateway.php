@@ -317,6 +317,13 @@ class ChipGateway
                         }
                     }
 
+                    // WHMCS credits a successful capture itself: ccProcessing() -> captureCCPayment()
+                    // calls Invoice::addPayment() with the transid returned below. Record that before
+                    // returning, so the capture callback the gateway is about to send does not credit
+                    // the same payment a second time. A pending or declined charge gets no marker -
+                    // there WHMCS does not credit and the callback is the only credit path.
+                    ChipHelpers::mark_capture_acknowledged($payment_id);
+
                     return ["status" => "success", "transid" => $create_payment['id'], "rawdata" => $charge_payment, 'fee' => $fee];
                 } elseif ($charge_payment['status'] == 'pending_charge') {
                     return ["status" => "pending", "transid" => $create_payment['id'], "rawdata" => $charge_payment];
@@ -361,6 +368,7 @@ class ChipGateway
     {
         require_once __DIR__ . '/api.php';
         require_once __DIR__ . '/action.php';
+        require_once __DIR__ . '/helpers.php';
         require_once __DIR__ . '/../../../init.php';
 
         \App::load_function('gateway');
@@ -418,6 +426,7 @@ class ChipGateway
     {
         require_once __DIR__ . '/api.php';
         require_once __DIR__ . '/action.php';
+        require_once __DIR__ . '/helpers.php';
         require_once __DIR__ . '/../../../init.php';
 
         \App::load_function('gateway');

@@ -47,6 +47,31 @@ class ChipAction
 
         try {
             return Capsule::transaction(function () use ($params, $payment, $payment_id) {
+                // capture() told WHMCS the capture succeeded, so WHMCS credits this invoice itself
+                // (ccProcessing() -> captureCCPayment() -> Invoice::addPayment()). Crediting again
+                // here is what turned one capture into two tblaccounts rows with the same transid
+                // and a negative invoice balance; it happens whenever this callback arrives before
+                // WHMCS reaches addPayment(), which is routine on a slow capture request.
+                //
+                // A capture the module left pending or declined has no marker: WHMCS does not
+                // credit those, so this callback must go on and credit them.
+                if (!ChipHelpers::capture_callback_should_credit(self::is_capture_callback(), $payment_id)) {
+                    $credited = Capsule::table('tblaccounts')
+                        ->where('transid', $payment_id)
+                        ->take(1)
+                        ->first();
+
+                    if (!$credited) {
+                        \logActivity(sprintf(
+                            'CHIP Capture Warning: invoice #%d is not credited for payment %s. WHMCS records capture payments itself - if the invoice is still unpaid it has to be credited manually.',
+                            $params['invoiceid'],
+                            $payment_id
+                        ));
+                    }
+
+                    return true;
+                }
+
                 $account = Capsule::table('tblaccounts')
                     ->where('transid', $payment_id)
                     ->take(1)
@@ -60,7 +85,13 @@ class ChipAction
                     ->take(1)
                     ->first();
 
-                if ($history) {
+                // WHMCS records one of these for EVERY capture attempt it makes
+                // ("Automatic Payment Attempt"), including the pending and declined ones it never
+                // credits. Reading it as "already credited" is what kept a pending capture from
+                // ever being credited when its callback finally said paid - the invoice stayed
+                // "Payment Pending" with the money taken. A capture callback therefore decides on
+                // the money row above, not on the attempt record.
+                if ($history && !self::is_capture_callback()) {
                     return true;
                 }
 
@@ -180,6 +211,15 @@ class ChipAction
         } finally {
             Capsule::select('SELECT RELEASE_LOCK(?)', ["chip_payment_$payment_id"]);
         }
+    }
+
+    /**
+     * The gateway asks for a capture callback by adding capturecallback=true to success_callback;
+     * a payer checkout never carries it, so this distinguishes the two credit paths.
+     */
+    private static function is_capture_callback(): bool
+    {
+        return isset($_GET['capturecallback']) && $_GET['capturecallback'] == 'true';
     }
 
     public static function retrieve_public_key($params)
