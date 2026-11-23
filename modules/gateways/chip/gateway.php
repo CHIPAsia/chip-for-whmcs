@@ -250,6 +250,35 @@ class ChipGateway
         try {
             $chip = \ChipAPI::get_instance($params['secretKey'], $params['brandId']);
 
+            // Refuse to charge an invoice the gateway has already collected money for. capture()
+            // creates a new purchase per attempt, so without this check a capture that WHMCS runs
+            // while the first payment's callback is still in flight (or timed out) charges the card
+            // again - the merchant-visible "two successful payments, one invoice" case.
+            $existing_payment_id = ChipHelpers::invoice_purchase((int) $params['invoiceid']);
+
+            if ($existing_payment_id !== null) {
+                try {
+                    $existing_payment = $chip->get_payment($existing_payment_id);
+
+                    if (($existing_payment['status'] ?? '') === 'paid') {
+                        \logActivity(sprintf(
+                            'CHIP Capture Blocked: Invoice #%d already has a paid payment (%s) at the gateway. No second charge was made; credit the invoice from that payment.',
+                            $params['invoiceid'],
+                            $existing_payment_id
+                        ));
+
+                        return [
+                            'status' => 'declined',
+                            'declinereason' => 'A payment for this invoice is already paid at the gateway. No second charge was made.',
+                        ];
+                    }
+                } catch (Exception $e) {
+                    // Fail open: if the lookup fails, refusing would leave a genuinely unpaid
+                    // invoice uncollected, which is worse than the guard not running.
+                    \logActivity('CHIP Capture Guard Warning: could not read payment ' . $existing_payment_id . ' for Invoice #' . $params['invoiceid'] . ': ' . $e->getMessage());
+                }
+            }
+
             $system_url = $params['systemurl'];
 
             if ($params['systemUrlHttps'] == 'https') {
@@ -282,6 +311,9 @@ class ChipGateway
             $charge_payment = $chip->charge_payment($create_payment['id'], ['recurring_token' => $params["gatewayid"]]);
 
             $payment_id = $create_payment['id'];
+
+            // Keep the marker current: the next capture for this invoice must see this purchase.
+            ChipHelpers::remember_invoice_purchase((int) $params['invoiceid'], (string) $payment_id);
 
             // The lock only has to stop two requests from recording the same payment at once. It
             // used to be taken here and never released, so a capture callback arriving while this
@@ -571,6 +603,10 @@ class ChipGateway
                 echo "Failed to create payment. Please contact administrator.";
                 exit;
             }
+
+            // Remember the purchase this invoice is paying through, so a later capture() can tell
+            // that the gateway already collected money for it (see the guard in capture()).
+            ChipHelpers::remember_invoice_purchase((int) $get_invoice_id, (string) $payment['id']);
 
             \WHMCS\Session::set('chip_' . $get_invoice_id, $payment['id']);
             \WHMCS\Session::set($gateway_module . '_' . $get_invoice_id, $payment['id']);
