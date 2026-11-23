@@ -7,6 +7,7 @@
 - Capture callback: a capture that `capture()` left **pending** (issuer 3DS/SCA) or **declined** (including a `charge_payment()` timeout after the money moved) carries no record, so the callback is still the credit path for it — WHMCS only credits a `success`. That path did not actually work: WHMCS writes a `Transaction\History` row ("Automatic Payment Attempt") for every capture attempt, including the ones it never credits, and the callback's idempotency check read that attempt record as "already credited" — the invoice stayed `Payment Pending` with the money taken. A capture callback now decides on the money row (`tblaccounts`) instead.
 - Capture callback: when the record is present but the invoice has no account row for the payment, the module writes `CHIP Capture Warning: invoice #N is not credited` to the Activity Log so the uncredited charge is visible instead of silent.
 - Capture callback: no longer sends a second "Credit Card Payment Confirmation" email for captures WHMCS already emailed about.
+- Callback signature verification: the cached gateway public key was stored exactly as `GET /public_key/` returns it — a JSON string, so the PEM kept its surrounding quotes — and `openssl_pkey_get_public()` rejected it. Every callback then answered `403 Invalid X Signature` and nothing was credited, silently. The key is now decoded and validated before it is cached, and an existing cache entry that is not a usable PEM is discarded so an affected installation heals on the next callback.
 
 ## [1.7.7] - 2026-10-27
 
