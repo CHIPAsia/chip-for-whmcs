@@ -27,16 +27,71 @@ class ChipHelpers
     /** Markers are only meaningful until the capture callback has been delivered and retried. */
     private const CAPTURE_ACK_TTL = 1209600; // 14 days
 
+    /**
+     * Prefix of the marker that remembers which gateway purchase an invoice is being paid through.
+     *
+     * capture() creates a NEW purchase for every capture attempt, so an invoice the gateway has
+     * already collected money for can be charged a second time whenever the first payment is not
+     * yet visible to WHMCS. Observed in production: the purchase.paid callback to the merchant's
+     * WHMCS timed out, the invoice still looked unpaid, and an automatic capture charged the same
+     * saved card again 60 seconds later. capture() now refuses to charge when this marker points at
+     * a purchase the gateway reports as paid.
+     */
+    private const INVOICE_PURCHASE_PREFIX = 'CHIP_INVOICE_PURCHASE_';
+
+    /** A checkout purchase only matters while its invoice can still be paid. */
+    private const INVOICE_PURCHASE_TTL = 604800; // 7 days
+
     public static function mark_capture_acknowledged(string $payment_id): void
     {
         WHMCSSetting::setValue(self::CAPTURE_ACK_PREFIX . $payment_id, (string) time());
 
-        self::sweep_capture_acknowledgements();
+        self::sweep(self::CAPTURE_ACK_PREFIX, self::CAPTURE_ACK_TTL);
     }
 
     public static function capture_was_acknowledged(string $payment_id): bool
     {
         return WHMCSSetting::getValue(self::CAPTURE_ACK_PREFIX . $payment_id) !== null;
+    }
+
+    /**
+     * Record which purchase this invoice is paying through. The value is "<epoch>:<payment id>" so
+     * the epoch stays the leading field the marker sweep compares against.
+     */
+    public static function remember_invoice_purchase(int $invoice_id, string $payment_id): void
+    {
+        if ($invoice_id <= 0 || $payment_id === '') {
+            return;
+        }
+
+        WHMCSSetting::setValue(self::INVOICE_PURCHASE_PREFIX . $invoice_id, time() . ':' . $payment_id);
+
+        self::sweep(self::INVOICE_PURCHASE_PREFIX, self::INVOICE_PURCHASE_TTL);
+    }
+
+    public static function invoice_purchase(int $invoice_id): ?string
+    {
+        if ($invoice_id <= 0) {
+            return null;
+        }
+
+        // Read through the database instead of WHMCSSetting::getValue(): that helper keeps its own
+        // per-request cache, and a marker that was swept or forgotten during this request must not
+        // still refuse a capture.
+        $value = (string) Capsule::table('tblconfiguration')
+            ->where('setting', self::INVOICE_PURCHASE_PREFIX . $invoice_id)
+            ->value('value');
+
+        $parts = explode(':', $value, 2);
+
+        return (count($parts) === 2 && $parts[1] !== '') ? $parts[1] : null;
+    }
+
+    public static function forget_invoice_purchase(int $invoice_id): void
+    {
+        Capsule::table('tblconfiguration')
+            ->where('setting', self::INVOICE_PURCHASE_PREFIX . $invoice_id)
+            ->delete();
     }
 
     /**
@@ -50,14 +105,15 @@ class ChipHelpers
 
     /**
      * Keep the markers bounded. Epoch values are ten digits until 2286, so the string
-     * comparison is also the numeric one.
+     * comparison is also the numeric one - and every marker family keeps its epoch first, which is
+     * what lets one sweep serve all of them.
      */
-    private static function sweep_capture_acknowledgements(): void
+    private static function sweep(string $prefix, int $ttl): void
     {
-        $cutoff = time() - self::CAPTURE_ACK_TTL;
+        $cutoff = time() - $ttl;
 
         Capsule::table('tblconfiguration')
-            ->where('setting', 'like', self::CAPTURE_ACK_PREFIX . '%')
+            ->where('setting', 'like', $prefix . '%')
             ->where('value', '<', (string) $cutoff)
             ->delete();
     }
