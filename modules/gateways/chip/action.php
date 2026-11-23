@@ -85,7 +85,13 @@ class ChipAction
                     ->take(1)
                     ->first();
 
-                if ($history) {
+                // WHMCS records one of these for EVERY capture attempt it makes
+                // ("Automatic Payment Attempt"), including the pending and declined ones it never
+                // credits. Reading it as "already credited" is what kept a pending capture from
+                // ever being credited when its callback finally said paid - the invoice stayed
+                // "Payment Pending" with the money taken. A capture callback therefore decides on
+                // the money row above, not on the attempt record.
+                if ($history && !self::is_capture_callback()) {
                     return true;
                 }
 
